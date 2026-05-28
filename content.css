@@ -1,0 +1,399 @@
+/* Slack AI Rewriter - Shadow DOM 内のスタイル
+ * メニュー / ローディング / トーストのみ管理。
+ * AI ボタンと履歴ボタンは Slack の DOM に直接注入するため、JS 側で inline-style 指定。
+ */
+
+:host { all: initial; }
+
+#sair-container {
+  /* ダークテーマ既定 */
+  --sair-bg: #1a1d21;
+  --sair-bg-2: #222529;
+  --sair-bg-hover: #2c2f33;
+  --sair-bg-active: #353a3f;
+  --sair-fg: #d1d2d3;
+  --sair-fg-strong: #ffffff;
+  --sair-fg-muted: #9a9b9d;
+  --sair-divider: #353a3f;
+  --sair-accent: #1264a3;
+  --sair-success: #2eb67d;
+  --sair-danger-bg: #3b1d20;
+  --sair-danger-fg: #ff6b76;
+  --sair-shadow: 0 12px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+#sair-container.sair-theme-light {
+  --sair-bg: #ffffff;
+  --sair-bg-2: #f8f8f8;
+  --sair-bg-hover: #f4f4f5;
+  --sair-bg-active: #ebebec;
+  --sair-fg: #1d1c1d;
+  --sair-fg-strong: #1d1c1d;
+  --sair-fg-muted: #616061;
+  --sair-divider: #ececed;
+  --sair-accent: #1264a3;
+  --sair-success: #007a5a;
+  --sair-danger-bg: #fdecea;
+  --sair-danger-fg: #b3261e;
+  --sair-shadow: 0 12px 28px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+#sair-container,
+#sair-container * {
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Lato", "Slack-Lato",
+    "Hiragino Kaku Gothic Pro", "Noto Sans JP", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--sair-fg);
+}
+
+/* ===== メニュー ===== */
+.sair-menu {
+  display: none;
+  position: fixed;
+  background: var(--sair-bg);
+  border-radius: 8px;
+  box-shadow: var(--sair-shadow);
+  padding: 6px;
+  width: 320px;
+  max-height: 420px;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sair-menu.visible { display: flex; }
+
+.sair-oneshot {
+  padding: 4px 4px 6px;
+  border-bottom: 1px solid var(--sair-divider);
+  margin-bottom: 4px;
+  position: relative;
+}
+.sair-oneshot-input {
+  width: 100%;
+  padding: 7px 32px 7px 10px;
+  background: var(--sair-bg-2);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font-size: 12.5px;
+  color: var(--sair-fg-strong);
+  outline: none;
+  font-family: inherit;
+}
+.sair-oneshot-input::placeholder { color: var(--sair-fg-muted); }
+.sair-oneshot-input:focus {
+  border-color: var(--sair-accent);
+  background: var(--sair-bg);
+}
+.sair-oneshot-send {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--sair-fg-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  padding: 0;
+}
+.sair-oneshot-send:hover {
+  background: var(--sair-bg-hover);
+  color: var(--sair-accent);
+}
+
+.sair-menu-label {
+  padding: 4px 8px 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--sair-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sair-menu-items {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.sair-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--sair-fg);
+  text-align: left;
+  line-height: 1.3;
+  font-family: inherit;
+}
+.sair-menu-item:hover {
+  background: var(--sair-bg-hover);
+  color: var(--sair-fg-strong);
+}
+.sair-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.sair-menu-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sair-menu-shortcut {
+  font-size: 10px;
+  color: var(--sair-fg-muted);
+  padding: 1px 4px;
+  border: 1px solid var(--sair-divider);
+  border-radius: 3px;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+}
+.sair-menu-divider {
+  height: 1px;
+  background: var(--sair-divider);
+  margin: 4px 0;
+}
+.sair-menu-settings { color: var(--sair-fg-muted); font-size: 12px; }
+
+/* 保存ダイアログ */
+.sair-save-dialog {
+  display: none;
+  padding: 8px;
+  border-top: 1px solid var(--sair-divider);
+  background: var(--sair-bg-2);
+  margin: 6px -6px -6px;
+  border-radius: 0 0 8px 8px;
+}
+.sair-save-dialog.visible { display: block; }
+.sair-save-dialog-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.sair-save-dialog input {
+  padding: 6px 8px;
+  background: var(--sair-bg);
+  border: 1px solid var(--sair-divider);
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: var(--sair-fg-strong);
+  outline: none;
+  font-family: inherit;
+}
+.sair-save-dialog input:focus { border-color: var(--sair-accent); }
+.sair-save-dialog input.icon { width: 44px; text-align: center; }
+.sair-save-dialog input.name { flex: 1; }
+.sair-save-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sair-save-dialog-hint {
+  font-size: 10.5px;
+  color: var(--sair-fg-muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* ===== ボタン (メニュー内ボタン用) ===== */
+.sair-btn {
+  padding: 5px 10px;
+  font-size: 11.5px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1.2;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.sair-btn-primary { background: var(--sair-success); color: #ffffff; }
+.sair-btn-primary:hover { background: #25a06f; }
+.sair-btn-ghost { background: transparent; color: var(--sair-fg-muted); }
+.sair-btn-ghost:hover { background: var(--sair-bg-hover); color: var(--sair-fg-strong); }
+
+/* ===== ローディング ===== */
+.sair-loading {
+  display: none;
+  position: fixed;
+  background: var(--sair-bg);
+  border-radius: 6px;
+  box-shadow: var(--sair-shadow);
+  padding: 7px 12px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--sair-fg);
+}
+.sair-loading.visible { display: inline-flex; }
+.sair-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--sair-divider);
+  border-top-color: var(--sair-accent);
+  border-radius: 50%;
+  animation: sair-spin 0.7s linear infinite;
+}
+@keyframes sair-spin { to { transform: rotate(360deg); } }
+
+/* ===== ストリップ (Shadow DOM フローティング) ===== */
+.sair-strip {
+  display: none;
+  position: fixed;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  background: var(--sair-bg);
+  border: 1.5px solid #4A154B;  /* Slack purple */
+  border-radius: 10px;
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.55),
+    0 0 0 4px rgba(74, 21, 75, 0.25);
+  padding: 6px 8px;
+  pointer-events: auto;
+}
+.sair-strip.visible {
+  display: inline-flex;
+  animation: sair-strip-in 0.22s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+/* 入力欄を指す下向き矢印 */
+.sair-strip::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  right: 28px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #4A154B;
+}
+.sair-strip::before {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 30px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--sair-bg);
+  z-index: 1;
+}
+@keyframes sair-strip-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.sair-strip-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--sair-fg);
+  cursor: pointer;
+  padding: 0 8px;
+  height: 30px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.sair-strip-prompt:hover {
+  background: var(--sair-bg-hover);
+  color: var(--sair-fg-strong);
+}
+
+.sair-strip-input {
+  height: 32px;
+  width: 340px;
+  padding: 0 12px;
+  background: var(--sair-bg-2);
+  border: 1px solid var(--sair-divider);
+  border-radius: 6px;
+  color: var(--sair-fg-strong);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: inherit;
+  outline: none;
+}
+.sair-strip-input::placeholder { color: var(--sair-fg-muted); }
+.sair-strip-input:focus {
+  border-color: var(--sair-accent);
+  background: var(--sair-bg);
+}
+
+.sair-strip-close {
+  background: transparent;
+  border: none;
+  color: var(--sair-fg-muted);
+  cursor: pointer;
+  padding: 0 6px;
+  height: 30px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.sair-strip-close:hover {
+  background: var(--sair-bg-hover);
+  color: var(--sair-fg-strong);
+}
+
+.sair-strip-hint {
+  font-size: 10.5px;
+  color: var(--sair-fg-muted);
+  padding: 0 6px;
+  display: none;
+}
+.sair-strip.narrow .sair-strip-input { width: 220px; }
+
+/* ===== トースト ===== */
+.sair-toast {
+  display: none;
+  position: fixed;
+  padding: 7px 12px;
+  background: var(--sair-bg);
+  border-radius: 6px;
+  box-shadow: var(--sair-shadow);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+.sair-toast.visible {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+.sair-toast-success { color: var(--sair-success); }
+.sair-toast-error {
+  color: var(--sair-danger-fg);
+  border-left: 3px solid var(--sair-danger-fg);
+}

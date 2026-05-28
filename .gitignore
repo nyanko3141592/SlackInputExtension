@@ -1,0 +1,22 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output (Web Store ZIP 等)
+dist/
+*.zip
+
+# macOS
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Claude Code local settings (個人環境固有)
+.claude/

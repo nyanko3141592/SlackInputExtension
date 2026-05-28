@@ -1,0 +1,67 @@
+{
+  "manifest_version": 3,
+  "name": "Slack AI Rewriter",
+  "version": "0.1.0",
+  "description": "Slack の入力欄を AI でリライト。丁寧/整理/構造化など複数のプロンプトを登録して使い分け。Slack Markdown に準拠した出力。",
+  "author": "Yellston",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
+    "https://*.workers.dev/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.slack.com/*",
+        "https://app.slack.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Slack AI Rewriter 設定"
+  },
+  "commands": {
+    "open-menu": {
+      "suggested_key": { "default": "Alt+Shift+A", "mac": "Alt+Shift+A" },
+      "description": "AI リライトメニューを開く"
+    },
+    "repeat-last": {
+      "suggested_key": { "default": "Alt+Shift+R", "mac": "Alt+Shift+R" },
+      "description": "直前と同じプロンプトでもう一度リライト"
+    },
+    "rewrite-1": {
+      "suggested_key": { "default": "Alt+Shift+1", "mac": "Alt+Shift+1" },
+      "description": "プロンプト #1 を直接実行"
+    },
+    "rewrite-2": {
+      "suggested_key": { "default": "Alt+Shift+2", "mac": "Alt+Shift+2" },
+      "description": "プロンプト #2 を直接実行"
+    },
+    "rewrite-3": { "description": "プロンプト #3 を直接実行" },
+    "rewrite-4": { "description": "プロンプト #4 を直接実行" },
+    "rewrite-5": { "description": "プロンプト #5 を直接実行" },
+    "rewrite-6": { "description": "プロンプト #6 を直接実行" },
+    "rewrite-7": { "description": "プロンプト #7 を直接実行" },
+    "rewrite-8": { "description": "プロンプト #8 を直接実行" },
+    "rewrite-9": { "description": "プロンプト #9 を直接実行" },
+    "undo-rewrite": { "description": "直前のリライトを取り消す (↩)" },
+    "reset-original": { "description": "原型に戻す (⟲)" }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["content.css"],
+      "matches": ["https://*.slack.com/*", "https://app.slack.com/*"]
+    }
+  ]
+}

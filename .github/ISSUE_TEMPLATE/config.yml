@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 質問・ディスカッション
+    url: https://github.com/nyanko3141592/SlackInputExtension/discussions
+    about: バグや機能要望ではない質問・相談は Discussions へ

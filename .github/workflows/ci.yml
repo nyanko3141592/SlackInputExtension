@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Validate manifest.json
+        run: node -e "JSON.parse(require('fs').readFileSync('manifest.json'))"
+
+      - name: Generate icons
+        run: pnpm build:icons
+
+      - name: Build extension ZIP
+        run: pnpm build:zip
+
+      - name: Show artifacts
+        run: ls -la dist/
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: slack-ai-rewriter-zip-${{ github.sha }}
+          path: dist/*.zip
+          retention-days: 14
