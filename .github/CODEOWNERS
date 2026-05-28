@@ -1,0 +1,12 @@
+# 全ファイルのデフォルトオーナー
+* @nyanko3141592
+
+# セキュリティ・公開系のファイルは特に注意
+/PRIVACY.md @nyanko3141592
+/SECURITY.md @nyanko3141592
+/STORE_LISTING.md @nyanko3141592
+/manifest.json @nyanko3141592
+/LICENSE @nyanko3141592
+
+# CI/CD
+/.github/ @nyanko3141592

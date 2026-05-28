@@ -3,7 +3,9 @@
  * AI ボタンと履歴ボタンは Slack の DOM に直接注入するため、JS 側で inline-style 指定。
  */
 
-:host { all: initial; }
+:host {
+  all: initial;
+}
 
 #sair-container {
   /* ダークテーマ既定 */
@@ -41,8 +43,9 @@
 #sair-container,
 #sair-container * {
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Lato", "Slack-Lato",
-    "Hiragino Kaku Gothic Pro", "Noto Sans JP", sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Lato', 'Slack-Lato', 'Hiragino Kaku Gothic Pro', 'Noto Sans JP',
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   color: var(--sair-fg);
 }
@@ -60,7 +63,9 @@
   flex-direction: column;
   overflow: hidden;
 }
-.sair-menu.visible { display: flex; }
+.sair-menu.visible {
+  display: flex;
+}
 
 .sair-oneshot {
   padding: 4px 4px 6px;
@@ -79,7 +84,9 @@
   outline: none;
   font-family: inherit;
 }
-.sair-oneshot-input::placeholder { color: var(--sair-fg-muted); }
+.sair-oneshot-input::placeholder {
+  color: var(--sair-fg-muted);
+}
 .sair-oneshot-input:focus {
   border-color: var(--sair-accent);
   background: var(--sair-bg);
@@ -163,14 +170,17 @@
   padding: 1px 4px;
   border: 1px solid var(--sair-divider);
   border-radius: 3px;
-  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
 }
 .sair-menu-divider {
   height: 1px;
   background: var(--sair-divider);
   margin: 4px 0;
 }
-.sair-menu-settings { color: var(--sair-fg-muted); font-size: 12px; }
+.sair-menu-settings {
+  color: var(--sair-fg-muted);
+  font-size: 12px;
+}
 
 /* 保存ダイアログ */
 .sair-save-dialog {
@@ -181,7 +191,9 @@
   margin: 6px -6px -6px;
   border-radius: 0 0 8px 8px;
 }
-.sair-save-dialog.visible { display: block; }
+.sair-save-dialog.visible {
+  display: block;
+}
 .sair-save-dialog-row {
   display: flex;
   gap: 6px;
@@ -197,9 +209,16 @@
   outline: none;
   font-family: inherit;
 }
-.sair-save-dialog input:focus { border-color: var(--sair-accent); }
-.sair-save-dialog input.icon { width: 44px; text-align: center; }
-.sair-save-dialog input.name { flex: 1; }
+.sair-save-dialog input:focus {
+  border-color: var(--sair-accent);
+}
+.sair-save-dialog input.icon {
+  width: 44px;
+  text-align: center;
+}
+.sair-save-dialog input.name {
+  flex: 1;
+}
 .sair-save-dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -225,10 +244,21 @@
   font-family: inherit;
   white-space: nowrap;
 }
-.sair-btn-primary { background: var(--sair-success); color: #ffffff; }
-.sair-btn-primary:hover { background: #25a06f; }
-.sair-btn-ghost { background: transparent; color: var(--sair-fg-muted); }
-.sair-btn-ghost:hover { background: var(--sair-bg-hover); color: var(--sair-fg-strong); }
+.sair-btn-primary {
+  background: var(--sair-success);
+  color: #ffffff;
+}
+.sair-btn-primary:hover {
+  background: #25a06f;
+}
+.sair-btn-ghost {
+  background: transparent;
+  color: var(--sair-fg-muted);
+}
+.sair-btn-ghost:hover {
+  background: var(--sair-bg-hover);
+  color: var(--sair-fg-strong);
+}
 
 /* ===== ローディング ===== */
 .sair-loading {
@@ -243,7 +273,9 @@
   font-size: 12px;
   color: var(--sair-fg);
 }
-.sair-loading.visible { display: inline-flex; }
+.sair-loading.visible {
+  display: inline-flex;
+}
 .sair-spinner {
   width: 12px;
   height: 12px;
@@ -252,7 +284,11 @@
   border-radius: 50%;
   animation: sair-spin 0.7s linear infinite;
 }
-@keyframes sair-spin { to { transform: rotate(360deg); } }
+@keyframes sair-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ===== ストリップ (Shadow DOM フローティング) ===== */
 .sair-strip {
@@ -262,7 +298,7 @@
   align-items: center;
   gap: 6px;
   background: var(--sair-bg);
-  border: 1.5px solid #4A154B;  /* Slack purple */
+  border: 1.5px solid #4a154b; /* Slack purple */
   border-radius: 10px;
   box-shadow:
     0 14px 40px rgba(0, 0, 0, 0.55),
@@ -284,7 +320,7 @@
   height: 0;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-top: 8px solid #4A154B;
+  border-top: 8px solid #4a154b;
 }
 .sair-strip::before {
   content: '';
@@ -299,8 +335,14 @@
   z-index: 1;
 }
 @keyframes sair-strip-in {
-  from { opacity: 0; transform: translateY(16px) scale(0.94); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .sair-strip-prompt {
@@ -337,7 +379,9 @@
   font-family: inherit;
   outline: none;
 }
-.sair-strip-input::placeholder { color: var(--sair-fg-muted); }
+.sair-strip-input::placeholder {
+  color: var(--sair-fg-muted);
+}
 .sair-strip-input:focus {
   border-color: var(--sair-accent);
   background: var(--sair-bg);
@@ -365,7 +409,9 @@
   padding: 0 6px;
   display: none;
 }
-.sair-strip.narrow .sair-strip-input { width: 220px; }
+.sair-strip.narrow .sair-strip-input {
+  width: 220px;
+}
 
 /* ===== トースト ===== */
 .sair-toast {
@@ -383,7 +429,9 @@
   text-overflow: ellipsis;
   opacity: 0;
   transform: translateY(-4px);
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
   pointer-events: none;
   z-index: 1;
 }
@@ -392,7 +440,9 @@
   opacity: 1;
   transform: translateY(0);
 }
-.sair-toast-success { color: var(--sair-success); }
+.sair-toast-success {
+  color: var(--sair-success);
+}
 .sair-toast-error {
   color: var(--sair-danger-fg);
   border-left: 3px solid var(--sair-danger-fg);

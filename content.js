@@ -15,11 +15,15 @@
   let lastMouseDownOnEditor = false;
 
   // グローバル mousedown 監視: ユーザーが Slack 入力欄を明示的にクリックしたか判定するため
-  document.addEventListener('mousedown', (e) => {
-    lastMouseDownTime = Date.now();
-    const ed = e.target.closest && e.target.closest('.ql-editor[contenteditable="true"]');
-    lastMouseDownOnEditor = !!ed;
-  }, true);
+  document.addEventListener(
+    'mousedown',
+    (e) => {
+      lastMouseDownTime = Date.now();
+      const ed = e.target.closest && e.target.closest('.ql-editor[contenteditable="true"]');
+      lastMouseDownOnEditor = !!ed;
+    },
+    true
+  );
 
   // ======== グローバル popup (プロンプト一覧) - body 直下に配置 ========
   // Slack のサイドバー overflow:hidden に切られないよう、composer 階層から離す
@@ -85,16 +89,26 @@
         border-radius:5px;cursor:pointer;font-size:13px;color:#d1d2d3;
         text-align:left;font-family:inherit
       `;
-      const sc = idx < 9 ? `<span style="font-size:10px;color:#9a9b9d;padding:1px 4px;border:1px solid #353a3f;border-radius:3px;font-family:monospace">${idx + 1}</span>` : '';
+      const sc =
+        idx < 9
+          ? `<span style="font-size:10px;color:#9a9b9d;padding:1px 4px;border:1px solid #353a3f;border-radius:3px;font-family:monospace">${idx + 1}</span>`
+          : '';
       item.innerHTML = `
         <span style="font-size:14px">${escapeHtml(p.icon || '✨')}</span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(p.name)}</span>
         ${sc}`;
-      item.addEventListener('mouseenter', () => { item.style.background = '#2c2f33'; item.style.color = '#fff'; });
-      item.addEventListener('mouseleave', () => { item.style.background = 'transparent'; item.style.color = '#d1d2d3'; });
+      item.addEventListener('mouseenter', () => {
+        item.style.background = '#2c2f33';
+        item.style.color = '#fff';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.background = 'transparent';
+        item.style.color = '#d1d2d3';
+      });
       item.addEventListener('mousedown', (e) => e.preventDefault());
       item.addEventListener('click', (e) => {
-        e.preventDefault(); e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
         hideGlobalPopup();
         runRewrite(editor, { promptId: p.id });
       });
@@ -108,21 +122,29 @@
     }
   }
   // 外部クリックで閉じる
-  document.addEventListener('mousedown', (e) => {
-    if (globalPopup.style.display === 'none') return;
-    if (globalPopup.contains(e.target)) return;
-    // ✨ AI ▾ ボタンがクリックされた場合は togglePopup の方が処理する
-    if (e.target.closest && e.target.closest('.sair-prompt')) return;
-    hideGlobalPopup();
-  }, true);
+  document.addEventListener(
+    'mousedown',
+    (e) => {
+      if (globalPopup.style.display === 'none') return;
+      if (globalPopup.contains(e.target)) return;
+      // ✨ AI ▾ ボタンがクリックされた場合は togglePopup の方が処理する
+      if (e.target.closest && e.target.closest('.sair-prompt')) return;
+      hideGlobalPopup();
+    },
+    true
+  );
   // ウィンドウリサイズ・スクロールで位置追従
-  window.addEventListener('scroll', () => {
-    if (globalPopup.style.display === 'block' && currentPopupContext) {
-      const strip = currentPopupContext.strip;
-      const btn = strip.querySelector('.sair-prompt');
-      if (btn) showGlobalPopup(btn, currentPopupContext.editor, currentPopupContext.input, strip);
-    }
-  }, true);
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (globalPopup.style.display === 'block' && currentPopupContext) {
+        const strip = currentPopupContext.strip;
+        const btn = strip.querySelector('.sair-prompt');
+        if (btn) showGlobalPopup(btn, currentPopupContext.editor, currentPopupContext.input, strip);
+      }
+    },
+    true
+  );
 
   // 各 composer に紐づくセッション {original, stack}
   // editor → session
@@ -135,7 +157,9 @@
     console.log('[SAIR] Slack AI Rewriter loaded (inline-strip mode)');
     loadPrompts();
     setupObserver();
-    chrome.storage.onChanged.addListener((c) => { if (c.prompts) loadPrompts(); });
+    chrome.storage.onChanged.addListener((c) => {
+      if (c.prompts) loadPrompts();
+    });
     // 既に存在する composer に注入
     scanAndInject();
   }
@@ -144,14 +168,16 @@
     try {
       const r = await chrome.runtime.sendMessage({ action: 'getSettings' });
       prompts = r?.prompts || [];
-    } catch { prompts = []; }
+    } catch {
+      prompts = [];
+    }
   }
 
   // ======== Slack DOM のスキャン ========
   function scanAndInject() {
     // 全ての composer を発見してストリップを注入
     const composers = document.querySelectorAll('.c-wysiwyg_container');
-    composers.forEach(c => maybeInject(c));
+    composers.forEach((c) => maybeInject(c));
   }
 
   function setupObserver() {
@@ -169,7 +195,7 @@
 
   function maybeInject(composer) {
     if (!composer || !composer.isConnected) return;
-    if (composer.querySelector(':scope > * .sair-strip-inline')) return;  // 既にある
+    if (composer.querySelector(':scope > * .sair-strip-inline')) return; // 既にある
     if (composer.querySelector('.sair-strip-inline')) return;
     const editor = composer.querySelector('.ql-editor[contenteditable="true"]');
     if (!editor) return;
@@ -228,9 +254,15 @@
     const closeBtn = strip.querySelector('.sair-close');
 
     // hover
-    [undoBtn, resetBtn, promptBtn, closeBtn].forEach(b => {
-      b.addEventListener('mouseenter', () => { b.style.background = 'rgba(127,127,127,0.2)'; b.style.opacity = '1'; });
-      b.addEventListener('mouseleave', () => { b.style.background = 'transparent'; b.style.opacity = b === closeBtn ? '0.5' : '0.85'; });
+    [undoBtn, resetBtn, promptBtn, closeBtn].forEach((b) => {
+      b.addEventListener('mouseenter', () => {
+        b.style.background = 'rgba(127,127,127,0.2)';
+        b.style.opacity = '1';
+      });
+      b.addEventListener('mouseleave', () => {
+        b.style.background = 'transparent';
+        b.style.opacity = b === closeBtn ? '0.5' : '0.85';
+      });
       b.addEventListener('mousedown', (e) => e.preventDefault());
     });
     let inputActive = false; // ユーザーがストリップ入力中だったか
@@ -241,8 +273,14 @@
       input.style.background = 'rgba(127,127,127,0.18)';
       inputActive = true;
     });
-    input.addEventListener('compositionstart', () => { imeInStrip = true; });
-    input.addEventListener('compositionend', () => { setTimeout(() => { imeInStrip = false; }, 50); });
+    input.addEventListener('compositionstart', () => {
+      imeInStrip = true;
+    });
+    input.addEventListener('compositionend', () => {
+      setTimeout(() => {
+        imeInStrip = false;
+      }, 50);
+    });
     input.addEventListener('blur', (e) => {
       input.style.borderColor = 'transparent';
       input.style.background = 'rgba(127,127,127,0.1)';
@@ -257,7 +295,9 @@
         if (imeInStrip) return;
         const ae = document.activeElement;
         // ストリップ内に既にフォーカスがあれば OK
-        if (ae && strip.contains(ae)) { return; }
+        if (ae && strip.contains(ae)) {
+          return;
+        }
         // フォーカスが ql-editor (Slack 入力欄) に飛んでいる場合
         if (ae && ae.classList && ae.classList.contains('ql-editor')) {
           // ユーザーが ql-editor を直接クリックして移動したなら戻さない
@@ -268,12 +308,16 @@
             return;
           }
           // それ以外 (React や Slack の自動 focus) → ストリップに戻す
-          try { input.focus(); } catch {}
+          try {
+            input.focus();
+          } catch {}
           return;
         }
         // body や他要素にフォーカス → ストリップに戻す (連続編集を維持)
         if (!ae || ae === document.body) {
-          try { input.focus(); } catch {}
+          try {
+            input.focus();
+          } catch {}
         } else {
           inputActive = false;
         }
@@ -281,19 +325,31 @@
     });
 
     // クリックハンドラ
-    undoBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); doUndo(editor); });
-    resetBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); doReset(editor); });
+    undoBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      doUndo(editor);
+    });
+    resetBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      doReset(editor);
+    });
     closeBtn.addEventListener('click', (e) => {
-      e.preventDefault(); e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
       inputActive = false;
       // 完全に閉じる場合は strip を削除 (再表示は scanAndInject で再注入)
       // ただし scanAndInject が即座に再注入するので、ここでは入力欄だけクリア
       input.value = '';
       // Slack 入力欄に戻す
-      try { editor.focus(); } catch {}
+      try {
+        editor.focus();
+      } catch {}
     });
     promptBtn.addEventListener('click', (e) => {
-      e.preventDefault(); e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
       if (globalPopup.style.display === 'block') {
         hideGlobalPopup();
       } else {
@@ -303,8 +359,16 @@
 
     // input handlers
     // Slack に key event を漏らさない（送信誤発火防止）
-    ['keydown', 'keyup', 'keypress', 'input', 'beforeinput', 'compositionstart', 'compositionupdate', 'compositionend']
-      .forEach(ev => input.addEventListener(ev, (e) => e.stopPropagation()));
+    [
+      'keydown',
+      'keyup',
+      'keypress',
+      'input',
+      'beforeinput',
+      'compositionstart',
+      'compositionupdate',
+      'compositionend',
+    ].forEach((ev) => input.addEventListener(ev, (e) => e.stopPropagation()));
     input.addEventListener('keydown', (e) => {
       if (e.isComposing) return;
       if (e.key === 'Enter') {
@@ -404,11 +468,20 @@
       sel.addRange(range);
       const ok = document.execCommand('insertText', false, text);
       if (!ok) {
-        el.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: text, bubbles: true, cancelable: true }));
+        el.dispatchEvent(
+          new InputEvent('beforeinput', {
+            inputType: 'insertText',
+            data: text,
+            bubbles: true,
+            cancelable: true,
+          })
+        );
       }
       el.dispatchEvent(new Event('input', { bubbles: true }));
     } finally {
-      setTimeout(() => { isReplacing = false; }, 80);
+      setTimeout(() => {
+        isReplacing = false;
+      }, 80);
     }
   }
 
@@ -431,7 +504,7 @@
         action: 'rewrite',
         originalText: original,
         promptId,
-        customInstruction
+        customInstruction,
       });
       if (res?.error) throw new Error(res.error);
       replaceEditorText(editor, res.result);
@@ -441,7 +514,10 @@
       setTimeout(() => {
         const composer = editor.closest('.c-wysiwyg_container');
         const inp = composer ? composer.querySelector('.sair-input') : null;
-        if (inp) try { inp.focus(); } catch {}
+        if (inp)
+          try {
+            inp.focus();
+          } catch {}
       }, 120);
     } catch (err) {
       session.stack.pop();
@@ -454,7 +530,7 @@
 
   function formatLabel(promptId, customInstruction) {
     if (promptId === 'oneshot') return `✨ ${(customInstruction || '').slice(0, 28)}`;
-    const p = prompts.find(x => x.id === promptId);
+    const p = prompts.find((x) => x.id === promptId);
     return p ? `${p.icon || ''} ${p.name}` : 'リライト';
   }
 
@@ -490,11 +566,15 @@
       composer.style.position = composer.style.position || 'relative';
       composer.appendChild(t);
     }
-    t.style.color = kind === 'error' ? '#ff6b76' : (kind === 'success' ? '#2eb67d' : '#d1d2d3');
+    t.style.color = kind === 'error' ? '#ff6b76' : kind === 'success' ? '#2eb67d' : '#d1d2d3';
     t.textContent = message;
-    requestAnimationFrame(() => { t.style.opacity = '1'; });
+    requestAnimationFrame(() => {
+      t.style.opacity = '1';
+    });
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.style.opacity = '0'; }, durationMs);
+    toastTimer = setTimeout(() => {
+      t.style.opacity = '0';
+    }, durationMs);
   }
 
   // ======== chrome.commands 受信 (Slack 入力欄にフォーカス中のみ) ========
@@ -528,15 +608,27 @@
         if (p) runRewrite(editor, { promptId: p.id });
         break;
       }
-      case 'cmd:undo': doUndo(editor); break;
-      case 'cmd:reset': doReset(editor); break;
+      case 'cmd:undo':
+        doUndo(editor);
+        break;
+      case 'cmd:reset':
+        doReset(editor);
+        break;
     }
   });
 
   function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, (c) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[c]));
+    return String(s ?? '').replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[c]
+    );
   }
 
   if (document.readyState === 'loading') {

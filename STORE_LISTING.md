@@ -139,31 +139,37 @@ Slack の Web 版メッセージ入力欄に書かれたテキストを、Google
 ## 権限の正当化
 
 ### storage 権限
+
 ```
 ユーザーの API キー、カスタムプロンプト、モデル選択をローカルに保存するために使用します。chrome.storage.sync を用いることでユーザーのデバイス間で設定を同期します。
 ```
 
 ### host permission: generativelanguage.googleapis.com
+
 ```
 Google Gemini API へリライト対象のテキストとプロンプトを送信し、結果を受け取るために必要です。これがリライト機能の中核です。
 ```
 
-### host permission: *.workers.dev
+### host permission: \*.workers.dev
+
 ```
 オプションの Gateway モードで、ユーザーまたは管理者が用意した Cloudflare Worker 経由で Gemini API を呼び出すために必要です。これにより組織内で API キーを共有することなく機能を利用できます。デフォルト設定では使用しません。
 ```
 
-### content_scripts: https://*.slack.com/*, https://app.slack.com/*
+### content*scripts: https://*.slack.com/\_, https://app.slack.com/*
+
 ```
 Slack の Web 版（app.slack.com および各ワークスペースの slack.com サブドメイン）のメッセージ入力欄に AI リライト UI を挿入するために必要です。Slack 以外の URL では一切動作しません。各メッセージの読み取り・送信は行わず、ユーザーが書きかけの入力欄のテキストのみを扱います。
 ```
 
 ### リモートコードの使用
+
 ```
 リモートコードは使用していません。すべての JavaScript は拡張機能パッケージに同梱されています。
 ```
 
 ### データ収集について（Privacy Practices Tab）
+
 ```
 - Personally identifiable information（個人識別情報）: NO
 - Health information: NO

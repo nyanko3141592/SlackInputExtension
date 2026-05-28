@@ -1,117 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <title>Slack AI Rewriter 設定</title>
-  <link rel="stylesheet" href="popup.css" />
-</head>
-<body>
-  <div class="header">
-    <span class="logo">✨</span>
-    <h1>Slack AI Rewriter</h1>
-  </div>
-
-  <div class="tabs">
-    <button class="tab active" data-tab="api">API 設定</button>
-    <button class="tab" data-tab="prompts">プロンプト</button>
-    <button class="tab" data-tab="help">ヘルプ</button>
-  </div>
-
-  <!-- API 設定 -->
-  <section class="panel active" data-panel="api">
-    <div class="field">
-      <label>接続モード</label>
-      <div class="radio-row">
-        <label class="radio"><input type="radio" name="apiMode" value="direct" checked /> 直接 (Gemini API キー)</label>
-        <label class="radio"><input type="radio" name="apiMode" value="gateway" /> Gateway (Cloudflare Worker)</label>
-      </div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Slack AI Rewriter 設定</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="header">
+      <span class="logo">✨</span>
+      <h1>Slack AI Rewriter</h1>
     </div>
 
-    <div class="field" id="apiKeyField">
-      <label for="apiKey">Gemini API キー</label>
-      <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off" />
-      <p class="hint">
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a> で取得（無料枠あり）
-      </p>
+    <div class="tabs">
+      <button class="tab active" data-tab="api">API 設定</button>
+      <button class="tab" data-tab="prompts">プロンプト</button>
+      <button class="tab" data-tab="help">ヘルプ</button>
     </div>
 
-    <div class="field hidden" id="gatewayField">
-      <label for="gatewayUrl">Gateway URL</label>
-      <input type="url" id="gatewayUrl" placeholder="https://xxx.workers.dev" />
-      <p class="hint">Worker 側で API キーを注入する場合</p>
-    </div>
-
-    <div class="field">
-      <label for="model">モデル</label>
-      <select id="model">
-        <option value="gemini-2.5-flash">gemini-2.5-flash (推奨・速い)</option>
-        <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (より軽量)</option>
-        <option value="gemini-2.5-pro">gemini-2.5-pro (高品質・遅め)</option>
-      </select>
-    </div>
-
-    <div class="actions">
-      <button id="saveApi" class="btn btn-primary">保存</button>
-      <span id="apiStatus" class="status"></span>
-    </div>
-  </section>
-
-  <!-- プロンプト -->
-  <section class="panel" data-panel="prompts">
-    <div class="prompts-toolbar">
-      <span class="hint">クリックで編集。並び替えは↑↓。Slack mrkdwn 形式の出力ルールは自動付与されます。</span>
-      <button id="resetPrompts" class="btn btn-link" title="デフォルトに戻す">↺ デフォルトに戻す</button>
-    </div>
-
-    <ul id="promptList" class="prompt-list"></ul>
-
-    <div class="prompt-editor hidden" id="promptEditor">
-      <div class="editor-row">
-        <input type="text" id="promptIcon" maxlength="3" placeholder="✨" class="icon-input" />
-        <input type="text" id="promptName" placeholder="プロンプト名" class="name-input" />
-      </div>
-      <textarea id="promptBody" rows="10" placeholder="リライトの方針を記述..."></textarea>
-      <div class="editor-actions">
-        <button id="deletePrompt" class="btn btn-danger">削除</button>
-        <div>
-          <button id="cancelEdit" class="btn btn-secondary">キャンセル</button>
-          <button id="savePrompt" class="btn btn-primary">保存</button>
+    <!-- API 設定 -->
+    <section class="panel active" data-panel="api">
+      <div class="field">
+        <label>接続モード</label>
+        <div class="radio-row">
+          <label class="radio"
+            ><input type="radio" name="apiMode" value="direct" checked /> 直接 (Gemini API キー)</label
+          >
+          <label class="radio"
+            ><input type="radio" name="apiMode" value="gateway" /> Gateway (Cloudflare Worker)</label
+          >
         </div>
       </div>
-    </div>
 
-    <button id="addPrompt" class="btn btn-secondary add-btn">+ プロンプトを追加</button>
-  </section>
+      <div class="field" id="apiKeyField">
+        <label for="apiKey">Gemini API キー</label>
+        <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off" />
+        <p class="hint">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a>
+          で取得（無料枠あり）
+        </p>
+      </div>
 
-  <!-- ヘルプ -->
-  <section class="panel" data-panel="help">
-    <h2>使い方</h2>
-    <ol>
-      <li>API 設定タブで Gemini API キーを保存。</li>
-      <li>Slack を開いて、メッセージを入力欄に書く。</li>
-      <li>入力欄の右上に <strong>✨ AI</strong> ボタンが表示されるのでクリック。</li>
-      <li>プロンプトを選ぶとリライト結果がプレビューされる。</li>
-      <li>編集 → <strong>適用</strong> で入力欄に置換。</li>
-    </ol>
+      <div class="field hidden" id="gatewayField">
+        <label for="gatewayUrl">Gateway URL</label>
+        <input type="url" id="gatewayUrl" placeholder="https://xxx.workers.dev" />
+        <p class="hint">Worker 側で API キーを注入する場合</p>
+      </div>
 
-    <h2>Slack Markdown のおすすめ設定</h2>
-    <p class="hint">
-      Slack の「環境設定 → 詳細設定 → メッセージ作成」で
-      <strong>「マークアップでメッセージをフォーマットする」</strong>
-      を ON にすると、<code>*text*</code> 等の出力がそのまま太字として送信されます（推奨）。
-    </p>
+      <div class="field">
+        <label for="model">モデル</label>
+        <select id="model">
+          <option value="gemini-2.5-flash">gemini-2.5-flash (推奨・速い)</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (より軽量)</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro (高品質・遅め)</option>
+        </select>
+      </div>
 
-    <h2>対応する Slack mrkdwn</h2>
-    <ul class="kv">
-      <li><code>*太字*</code> → <strong>太字</strong></li>
-      <li><code>_斜体_</code> → <em>斜体</em></li>
-      <li><code>~取り消し線~</code></li>
-      <li><code>`コード`</code></li>
-      <li><code>&gt; 引用</code></li>
-      <li><code>• 箇条書き</code></li>
-    </ul>
-  </section>
+      <div class="actions">
+        <button id="saveApi" class="btn btn-primary">保存</button>
+        <span id="apiStatus" class="status"></span>
+      </div>
+    </section>
 
-  <script src="popup.js"></script>
-</body>
+    <!-- プロンプト -->
+    <section class="panel" data-panel="prompts">
+      <div class="prompts-toolbar">
+        <span class="hint"
+          >クリックで編集。並び替えは↑↓。Slack mrkdwn 形式の出力ルールは自動付与されます。</span
+        >
+        <button id="resetPrompts" class="btn btn-link" title="デフォルトに戻す">↺ デフォルトに戻す</button>
+      </div>
+
+      <ul id="promptList" class="prompt-list"></ul>
+
+      <div class="prompt-editor hidden" id="promptEditor">
+        <div class="editor-row">
+          <input type="text" id="promptIcon" maxlength="3" placeholder="✨" class="icon-input" />
+          <input type="text" id="promptName" placeholder="プロンプト名" class="name-input" />
+        </div>
+        <textarea id="promptBody" rows="10" placeholder="リライトの方針を記述..."></textarea>
+        <div class="editor-actions">
+          <button id="deletePrompt" class="btn btn-danger">削除</button>
+          <div>
+            <button id="cancelEdit" class="btn btn-secondary">キャンセル</button>
+            <button id="savePrompt" class="btn btn-primary">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="addPrompt" class="btn btn-secondary add-btn">+ プロンプトを追加</button>
+    </section>
+
+    <!-- ヘルプ -->
+    <section class="panel" data-panel="help">
+      <h2>使い方</h2>
+      <ol>
+        <li>API 設定タブで Gemini API キーを保存。</li>
+        <li>Slack を開いて、メッセージを入力欄に書く。</li>
+        <li>入力欄の右上に <strong>✨ AI</strong> ボタンが表示されるのでクリック。</li>
+        <li>プロンプトを選ぶとリライト結果がプレビューされる。</li>
+        <li>編集 → <strong>適用</strong> で入力欄に置換。</li>
+      </ol>
+
+      <h2>Slack Markdown のおすすめ設定</h2>
+      <p class="hint">
+        Slack の「環境設定 → 詳細設定 → メッセージ作成」で
+        <strong>「マークアップでメッセージをフォーマットする」</strong>
+        を ON にすると、<code>*text*</code> 等の出力がそのまま太字として送信されます（推奨）。
+      </p>
+
+      <h2>対応する Slack mrkdwn</h2>
+      <ul class="kv">
+        <li><code>*太字*</code> → <strong>太字</strong></li>
+        <li><code>_斜体_</code> → <em>斜体</em></li>
+        <li><code>~取り消し線~</code></li>
+        <li><code>`コード`</code></li>
+        <li><code>&gt; 引用</code></li>
+        <li><code>• 箇条書き</code></li>
+      </ul>
+    </section>
+
+    <script src="popup.js"></script>
+  </body>
 </html>

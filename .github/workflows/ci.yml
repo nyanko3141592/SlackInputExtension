@@ -7,27 +7,79 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
-  build:
+  lint:
+    name: Lint & Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v3
         with:
-          version: 9
+          version: 10
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: ESLint
+        run: pnpm lint
+
+      - name: Prettier check
+        run: pnpm format:check
+
+  validate:
+    name: Validate manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Validate manifest.json
-        run: node -e "JSON.parse(require('fs').readFileSync('manifest.json'))"
+        run: |
+          node -e "
+            const m = JSON.parse(require('fs').readFileSync('manifest.json'));
+            if (m.manifest_version !== 3) throw new Error('manifest_version must be 3');
+            if (!m.version || !/^\d+\.\d+\.\d+$/.test(m.version)) throw new Error('version must be x.y.z');
+            if (!m.name || !m.description) throw new Error('name/description required');
+            console.log('✓ manifest valid:', m.name, 'v' + m.version);
+          "
+
+      - name: Check icons exist (or generate)
+        run: |
+          for s in 16 48 128; do
+            if [ ! -f "icons/icon${s}.png" ]; then
+              echo "::warning::icons/icon${s}.png missing - will be generated"
+            fi
+          done
+
+  build:
+    name: Build ZIP
+    needs: [lint, validate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
 
       - name: Generate icons
         run: pnpm build:icons
@@ -35,8 +87,14 @@ jobs:
       - name: Build extension ZIP
         run: pnpm build:zip
 
-      - name: Show artifacts
-        run: ls -la dist/
+      - name: Check ZIP size (warn if > 5 MB)
+        run: |
+          size=$(stat -c%s dist/*.zip)
+          mb=$(awk -v s="$size" 'BEGIN{ printf "%.2f", s/1024/1024 }')
+          echo "ZIP size: ${mb} MB"
+          if [ "$size" -gt 5242880 ]; then
+            echo "::warning::ZIP exceeds 5 MB (${mb} MB) — Chrome Web Store allows up to 50 MB but smaller is better"
+          fi
 
       - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
@@ -44,3 +102,38 @@ jobs:
           name: slack-ai-rewriter-zip-${{ github.sha }}
           path: dist/*.zip
           retention-days: 14
+
+  version-bump-check:
+    name: Version bump check (PR only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect if source code changed
+        id: changes
+        run: |
+          base=${{ github.event.pull_request.base.sha }}
+          head=${{ github.event.pull_request.head.sha }}
+          if git diff --name-only "$base" "$head" | grep -E '^(background\.js|content\.js|content\.css|popup\.(html|js|css)|manifest\.json)$' > /dev/null; then
+            echo "src_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "src_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check version bump in manifest
+        if: steps.changes.outputs.src_changed == 'true'
+        run: |
+          base=${{ github.event.pull_request.base.sha }}
+          head=${{ github.event.pull_request.head.sha }}
+          base_ver=$(git show "$base:manifest.json" | node -e "console.log(JSON.parse(require('fs').readFileSync('/dev/stdin')).version)")
+          head_ver=$(git show "$head:manifest.json" | node -e "console.log(JSON.parse(require('fs').readFileSync('/dev/stdin')).version)")
+          echo "base version: $base_ver"
+          echo "head version: $head_ver"
+          if [ "$base_ver" = "$head_ver" ]; then
+            echo "::warning::ソースコードが変更されていますが manifest.json の version が bump されていません。リリース予定なら version を上げてください ($base_ver → 次)"
+          else
+            echo "✓ version bumped: $base_ver → $head_ver"
+          fi

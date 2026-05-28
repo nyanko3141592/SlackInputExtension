@@ -1,0 +1,39 @@
+version: 2
+updates:
+  # npm 依存（sharp 等）
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Asia/Tokyo'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'npm'
+    commit-message:
+      prefix: 'deps'
+      include: 'scope'
+    groups:
+      # patch/minor は1つの PR にまとめる
+      minor-and-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+
+  # GitHub Actions の version 更新
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Asia/Tokyo'
+    open-pull-requests-limit: 3
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+    commit-message:
+      prefix: 'ci'
+      include: 'scope'

@@ -21,7 +21,7 @@ const els = {
   cancelEdit: document.getElementById('cancelEdit'),
   deletePrompt: document.getElementById('deletePrompt'),
   addPrompt: document.getElementById('addPrompt'),
-  resetPrompts: document.getElementById('resetPrompts')
+  resetPrompts: document.getElementById('resetPrompts'),
 };
 
 let prompts = [];
@@ -29,10 +29,10 @@ let editingId = null;
 let defaultPrompts = [];
 
 // ===== タブ =====
-els.tabs.forEach(t => {
+els.tabs.forEach((t) => {
   t.addEventListener('click', () => {
-    els.tabs.forEach(x => x.classList.remove('active'));
-    els.panels.forEach(p => p.classList.remove('active'));
+    els.tabs.forEach((x) => x.classList.remove('active'));
+    els.panels.forEach((p) => p.classList.remove('active'));
     t.classList.add('active');
     document.querySelector(`.panel[data-panel="${t.dataset.tab}"]`).classList.add('active');
   });
@@ -49,7 +49,7 @@ function updateApiModeUi(mode) {
   }
 }
 
-els.apiMode.forEach(r => {
+els.apiMode.forEach((r) => {
   r.addEventListener('change', () => {
     const mode = document.querySelector('input[name="apiMode"]:checked').value;
     updateApiModeUi(mode);
@@ -72,7 +72,7 @@ els.saveApi.addEventListener('click', async () => {
     apiMode: mode,
     apiKey: els.apiKey.value.trim(),
     gatewayUrl: els.gatewayUrl.value.trim(),
-    model: els.model.value
+    model: els.model.value,
   };
   if (mode === 'direct' && !data.apiKey) {
     return flashStatus('API キーを入力してください', true);
@@ -95,12 +95,13 @@ function flashStatus(msg, isError = false) {
 async function loadPrompts() {
   const [data, defaults] = await Promise.all([
     chrome.storage.sync.get(['prompts']),
-    chrome.runtime.sendMessage({ action: 'getDefaultPrompts' })
+    chrome.runtime.sendMessage({ action: 'getDefaultPrompts' }),
   ]);
   defaultPrompts = defaults || [];
-  prompts = Array.isArray(data.prompts) && data.prompts.length > 0
-    ? data.prompts
-    : JSON.parse(JSON.stringify(defaultPrompts));
+  prompts =
+    Array.isArray(data.prompts) && data.prompts.length > 0
+      ? data.prompts
+      : JSON.parse(JSON.stringify(defaultPrompts));
   renderPrompts();
 }
 
@@ -118,9 +119,18 @@ function renderPrompts() {
         <button class="move-down" title="下へ" ${idx === prompts.length - 1 ? 'disabled' : ''}>↓</button>
         <button class="edit" title="編集">✎</button>
       </div>`;
-    li.querySelector('.move-up').addEventListener('click', (e) => { e.stopPropagation(); movePrompt(idx, -1); });
-    li.querySelector('.move-down').addEventListener('click', (e) => { e.stopPropagation(); movePrompt(idx, +1); });
-    li.querySelector('.edit').addEventListener('click', (e) => { e.stopPropagation(); openEditor(p.id); });
+    li.querySelector('.move-up').addEventListener('click', (e) => {
+      e.stopPropagation();
+      movePrompt(idx, -1);
+    });
+    li.querySelector('.move-down').addEventListener('click', (e) => {
+      e.stopPropagation();
+      movePrompt(idx, +1);
+    });
+    li.querySelector('.edit').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditor(p.id);
+    });
     li.addEventListener('click', () => openEditor(p.id));
     els.promptList.appendChild(li);
   });
@@ -136,7 +146,7 @@ function movePrompt(idx, delta) {
 }
 
 function openEditor(id) {
-  const p = prompts.find(x => x.id === id);
+  const p = prompts.find((x) => x.id === id);
   if (!p) return;
   editingId = id;
   els.promptIcon.value = p.icon || '';
@@ -155,7 +165,7 @@ function closeEditor() {
 
 els.savePrompt.addEventListener('click', () => {
   if (!editingId) return;
-  const p = prompts.find(x => x.id === editingId);
+  const p = prompts.find((x) => x.id === editingId);
   if (!p) return;
   const name = els.promptName.value.trim();
   const body = els.promptBody.value.trim();
@@ -174,7 +184,7 @@ els.deletePrompt.addEventListener('click', () => {
   if (!editingId) return;
   if (prompts.length <= 1) return alert('最低1つのプロンプトが必要です');
   if (!confirm('このプロンプトを削除しますか？')) return;
-  prompts = prompts.filter(p => p.id !== editingId);
+  prompts = prompts.filter((p) => p.id !== editingId);
   persistPrompts();
   closeEditor();
 });
@@ -185,7 +195,7 @@ els.addPrompt.addEventListener('click', () => {
     id,
     name: '新しいプロンプト',
     icon: '✨',
-    prompt: '次の Slack メッセージを、以下の方針でリライトしてください。\n\n【方針】\n- '
+    prompt: '次の Slack メッセージを、以下の方針でリライトしてください。\n\n【方針】\n- ',
   });
   persistPrompts();
   openEditor(id);
@@ -204,9 +214,17 @@ async function persistPrompts() {
 }
 
 function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+  return String(s ?? '').replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[c]
+  );
 }
 
 // ===== 初期化 =====

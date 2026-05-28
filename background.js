@@ -29,7 +29,7 @@ const DEFAULT_PROMPTS = [
 - 過度に堅くせず、Slack らしい読みやすさを保つ
 - 冗長な敬語の重ね掛けは避ける（「させていただく」連発しない）
 - 絵文字が元にあれば必要に応じて残す。新規追加は最小限
-- メンション (<@USER>) や URL はそのまま保持`
+- メンション (<@USER>) や URL はそのまま保持`,
   },
   {
     id: 'organize',
@@ -42,7 +42,7 @@ const DEFAULT_PROMPTS = [
 - 結論や要点を先に、詳細を後に置く
 - 重複・冗長表現を削除
 - 文脈に応じて箇条書き化（• ）してよいが、短い内容は無理に箇条書きにしない
-- 元の意図・情報を変えない`
+- 元の意図・情報を変えない`,
   },
   {
     id: 'structure',
@@ -54,7 +54,7 @@ const DEFAULT_PROMPTS = [
 - 内容を見出し的な太字ラベル（例: *背景* / *依頼内容* / *期限* など）でグルーピング
 - 各セクションは箇条書き（• ）または短い文で記述
 - 「依頼/相談/共有/質問」など、メッセージの目的が明確になるよう冒頭1行で要約してもよい
-- 元の意図・情報を変えない。情報が不足している項目は無理に作らない`
+- 元の意図・情報を変えない。情報が不足している項目は無理に作らない`,
   },
   {
     id: 'concise',
@@ -66,7 +66,7 @@ const DEFAULT_PROMPTS = [
 - 冗長な前置き・繰り返しを削除
 - 1〜3文程度を目安に短くまとめる
 - 必要な情報（誰が・何を・いつ）は落とさない
-- 過度にぶっきらぼうにならない程度の丁寧さは保つ`
+- 過度にぶっきらぼうにならない程度の丁寧さは保つ`,
   },
   {
     id: 'casual',
@@ -78,7 +78,7 @@ const DEFAULT_PROMPTS = [
 - ですます調を基本としつつ、堅すぎる敬語は崩す
 - 「お疲れ様です」「恐れ入りますが」などの過剰な定型句は省く
 - フランクすぎる若者言葉やタメ口にはしない
-- 元の意図・情報を変えない`
+- 元の意図・情報を変えない`,
   },
   {
     id: 'bullets',
@@ -90,7 +90,7 @@ const DEFAULT_PROMPTS = [
 - 行頭は「• 」（中黒+半角スペース）
 - 1項目は1行で簡潔に
 - 必要なら冒頭に1行サマリー（太字 *summary*）を付ける
-- 元の意図・情報を変えない`
+- 元の意図・情報を変えない`,
   },
   {
     id: 'translate-en',
@@ -105,8 +105,8 @@ const DEFAULT_PROMPTS = [
 - 日本語の謙譲・婉曲表現は、英語として自然な表現に置き換える（"sorry to bother you" 等で代替できる場合は活用）
 - 元テキストの URL、メンション (<@USER>)、絵文字ショートコード (:smile: 等)、数字、固有名詞はそのまま保持
 - 既に英語の部分があれば、不要な書き換えはしない
-- 1〜2文の短い場合は冒頭の Hi/Hello 等の挨拶は付けず、本文だけを訳す`
-  }
+- 1〜2文の短い場合は冒頭の Hi/Hello 等の挨拶は付けず、本文だけを訳す`,
+  },
 ];
 
 const SYSTEM_INSTRUCTION_TEMPLATE = `あなたは Slack のメッセージリライト専用のアシスタントです。
@@ -139,7 +139,7 @@ ${originalText}
 const LEGACY_MODEL_MAP = {
   'gemini-2.0-flash': 'gemini-2.5-flash',
   'gemini-2.0-flash-lite': 'gemini-2.5-flash-lite',
-  'gemini-1.5-flash': 'gemini-2.5-flash-lite'
+  'gemini-1.5-flash': 'gemini-2.5-flash-lite',
 };
 
 function resolveModel(stored) {
@@ -154,7 +154,7 @@ async function getSettings() {
     apiMode: data.apiMode || 'direct',
     gatewayUrl: data.gatewayUrl || '',
     model: resolveModel(data.model),
-    prompts: Array.isArray(data.prompts) && data.prompts.length > 0 ? data.prompts : DEFAULT_PROMPTS
+    prompts: Array.isArray(data.prompts) && data.prompts.length > 0 ? data.prompts : DEFAULT_PROMPTS,
   };
 }
 
@@ -171,7 +171,7 @@ function resolveGateway(settings) {
 async function callGemini({ apiKey, model, prompt, gatewayUrl }) {
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.6, maxOutputTokens: 4096 }
+    generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
   };
 
   let url;
@@ -184,7 +184,7 @@ async function callGemini({ apiKey, model, prompt, gatewayUrl }) {
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -213,7 +213,7 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
     promptDef = {
       id: 'oneshot',
       name: 'カスタム指示',
-      prompt: customInstruction.trim()
+      prompt: customInstruction.trim(),
     };
     // oneshot は customInstruction を本体に使うので追加指示は不要
     const prompt = buildPrompt(originalText, promptDef, null);
@@ -221,7 +221,7 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
     return { result };
   }
 
-  promptDef = settings.prompts.find(p => p.id === promptId);
+  promptDef = settings.prompts.find((p) => p.id === promptId);
   if (!promptDef) throw new Error('プロンプトが見つかりません');
 
   const prompt = buildPrompt(originalText, promptDef, customInstruction);
@@ -229,7 +229,7 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
     apiKey,
     model: settings.model,
     prompt,
-    gatewayUrl
+    gatewayUrl,
   });
   return { result };
 }
@@ -238,15 +238,16 @@ async function handleSavePrompt({ name, icon, prompt }) {
   if (!name || !name.trim()) throw new Error('プロンプト名が空です');
   if (!prompt || !prompt.trim()) throw new Error('プロンプト本文が空です');
   const data = await chrome.storage.sync.get(['prompts']);
-  const list = Array.isArray(data.prompts) && data.prompts.length > 0
-    ? data.prompts
-    : JSON.parse(JSON.stringify(DEFAULT_PROMPTS));
+  const list =
+    Array.isArray(data.prompts) && data.prompts.length > 0
+      ? data.prompts
+      : JSON.parse(JSON.stringify(DEFAULT_PROMPTS));
   const id = `custom-${Date.now()}`;
   list.push({
     id,
     name: name.trim(),
     icon: (icon || '✨').trim() || '✨',
-    prompt: prompt.trim()
+    prompt: prompt.trim(),
   });
   await chrome.storage.sync.set({ prompts: list });
   return { ok: true, id };
@@ -270,7 +271,7 @@ chrome.commands.onCommand.addListener(async (command) => {
     if (!tab?.id) return;
     if (!/^https?:\/\/([a-z0-9-]+\.)*slack\.com\//i.test(tab.url || '')) return;
     await chrome.tabs.sendMessage(tab.id, payload);
-  } catch (err) {
+  } catch {
     // content script がいないタブ等は無視
   }
 });
@@ -279,13 +280,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'rewrite') {
     handleRewrite(message)
       .then(sendResponse)
-      .catch(err => sendResponse({ error: err.message }));
+      .catch((err) => sendResponse({ error: err.message }));
     return true;
   }
   if (message.action === 'savePrompt') {
     handleSavePrompt(message)
       .then(sendResponse)
-      .catch(err => sendResponse({ error: err.message }));
+      .catch((err) => sendResponse({ error: err.message }));
     return true;
   }
   if (message.action === 'getSettings') {
