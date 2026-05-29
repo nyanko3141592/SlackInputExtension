@@ -87,32 +87,106 @@ curl https://yourorg-ai-gateway.xxx.workers.dev/health
 6. **メンバートークン**: 配布された UUID (認証なし運用なら空欄)
 7. **保存**
 
-## メンバーの追加・削除
+## メンバー管理 (スクリプトで半自動化)
 
-### 追加
+`scripts/` 配下のヘルパーで「UUID 発行 → members.json 更新 → Worker への push」をワンコマンドで実行できます。
 
-新しい UUID を発行して `ALLOWED_TOKENS` に追加:
+> `members.json` はトークンを含むため `.gitignore` 済み。手元の管理ファイルとして保持してください (Notion / private gist / 1Password などにバックアップ推奨)。
 
-```sh
-# 現在の値を取得 → 追加 → 再設定
-echo "現在のトークン,新しい-uuid-1234..." | wrangler secret put ALLOWED_TOKENS
-```
-
-または、Cloudflare ダッシュボードで:
-
-- Workers & Pages → 該当 Worker → **Settings** → **Variables and Secrets** → `ALLOWED_TOKENS` の編集ボタン
-- 値を `現在値,新規UUID` に書き換えて保存
-
-新メンバーに UUID と上記設定手順を Slack DM などで送付。
-
-### 削除 (退職時など)
-
-`ALLOWED_TOKENS` からそのトークンを削除して再保存。即座に拒否されます。
+### 新規メンバー発行
 
 ```sh
-# 全部を 1 回入れ直す
-echo "残す-uuid-1,残す-uuid-2,..." | wrangler secret put ALLOWED_TOKENS
+cd cloudflare-worker
+node scripts/issue-token.js tanaka --note engineering
 ```
+
+出力例:
+
+```
+✓ Updated members.json (3 members)
+📡 Pushing ALLOWED_TOKENS to Worker (3 members)...
+✓ Created secret ALLOWED_TOKENS
+
+✅ 発行完了
+---
+Member  : tanaka
+Token   : 550e8400-e29b-41d4-a716-446655440000
+Note    : engineering
+Gateway : https://yourorg-ai-gateway.takahashi-naoki.workers.dev
+---
+
+📋 Slack DM 用テンプレ (コピペ可):
+
+```
+
+@tanaka さん、Slack AI Rewriter のセットアップ情報を送ります。
+
+1. Chrome Web Store から「Slack AI Rewriter」をインストール
+2. 拡張機能アイコンをクリック → 「API 設定」タブ
+3. 接続モード: 「Gateway (Cloudflare Worker)」
+4. Gateway URL: https://yourorg-ai-gateway.takahashi-naoki.workers.dev
+5. メンバートークン: 550e8400-e29b-41d4-a716-446655440000
+6. 「保存」
+   ...
+
+```
+
+```
+
+このテンプレを Slack で対象メンバーに DM するだけで配布完了。
+
+オプション:
+
+- `--note "engineering"` 任意のメモ
+- `--gateway-url https://...` Gateway URL を明示指定 (テンプレに反映)
+- `--no-deploy` wrangler への push をスキップ (発行だけ)
+
+### メンバー一覧表示
+
+```sh
+node scripts/list-members.js
+```
+
+```
+Member    Issued      Token         Note
+─────────────────────────────────────────────
+tanaka    2026-05-29  550e8400...   engineering
+suzuki    2026-05-29  6ba7b810...   sales
+
+Total: 2 members
+(--full でトークン全体を表示)
+```
+
+### メンバー削除 (退職など)
+
+```sh
+node scripts/revoke-token.js tanaka
+```
+
+`members.json` から該当メンバーを削除し、残ったトークンで `ALLOWED_TOKENS` を再生成 → Worker に push します。即座にそのトークンは無効化されます。
+
+メンバーが 0 人になると `ALLOWED_TOKENS` 自体が削除され、Worker は **Open Gateway モード** (認証なし) に戻ります。
+
+### チームで同じトークンを使い回したい場合
+
+`members.json` の `id` を `engineering-team` のような単位にして、メンバー間で同じトークンを共有することも可能です。
+
+```sh
+node scripts/issue-token.js engineering-team --note "発行: 2026-05 / 共有可"
+```
+
+ログでは「engineering チームの誰かが」が分かる粒度になりますが、個人特定はできません。チーム単位の運用に切り替えたいときに使ってください。
+
+### 手動運用 (スクリプトを使わない場合)
+
+```sh
+# 直接 wrangler secret を編集
+echo "uuid1,uuid2,uuid3,..." | wrangler secret put ALLOWED_TOKENS
+```
+
+または Cloudflare ダッシュボード:
+
+- Workers & Pages → 該当 Worker → **Settings** → **Variables and Secrets** → `ALLOWED_TOKENS` を編集
 
 ## ログ確認
 

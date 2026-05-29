@@ -46,7 +46,7 @@ export default [
   },
   {
     // Cloudflare Worker (ESM, fetch/Response/Headers などのグローバル)
-    files: ['cloudflare-worker/**/*.js'],
+    files: ['cloudflare-worker/worker.js'],
     languageOptions: {
       sourceType: 'module',
       globals: {
@@ -57,6 +57,16 @@ export default [
         Headers: 'readonly',
         URL: 'readonly',
         console: 'readonly',
+      },
+    },
+  },
+  {
+    // Cloudflare Worker 管理スクリプト (Node.js CommonJS)
+    files: ['cloudflare-worker/scripts/**/*.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
       },
     },
   },
