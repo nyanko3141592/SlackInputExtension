@@ -112,7 +112,7 @@ node scripts/issue-token.js tanaka --note engineering
 Member  : tanaka
 Token   : 550e8400-e29b-41d4-a716-446655440000
 Note    : engineering
-Gateway : https://yourorg-ai-gateway.takahashi-naoki.workers.dev
+Gateway : https://yourorg-ai-gateway.YOUR-SUBDOMAIN.workers.dev
 ---
 
 📋 Slack DM 用テンプレ (コピペ可):
@@ -124,7 +124,7 @@ Gateway : https://yourorg-ai-gateway.takahashi-naoki.workers.dev
 1. Chrome Web Store から「Slack AI Rewriter」をインストール
 2. 拡張機能アイコンをクリック → 「API 設定」タブ
 3. 接続モード: 「Gateway (Cloudflare Worker)」
-4. Gateway URL: https://yourorg-ai-gateway.takahashi-naoki.workers.dev
+4. Gateway URL: https://yourorg-ai-gateway.YOUR-SUBDOMAIN.workers.dev
 5. メンバートークン: 550e8400-e29b-41d4-a716-446655440000
 6. 「保存」
    ...
