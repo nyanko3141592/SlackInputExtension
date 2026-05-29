@@ -8,7 +8,7 @@
 //
 // 例:
 //   node scripts/issue-token.js tanaka
-//   node scripts/issue-token.js suzuki --note "engineering" --gateway-url https://yellston-ai-gateway.takahashi-naoki.workers.dev
+//   node scripts/issue-token.js suzuki --note "engineering" --gateway-url https://yourorg-ai-gateway.YOUR-SUBDOMAIN.workers.dev
 //   node scripts/issue-token.js misaki --no-deploy   # secret push せずに発行だけ
 //
 // このスクリプトは cloudflare-worker/ ディレクトリで実行する想定。
