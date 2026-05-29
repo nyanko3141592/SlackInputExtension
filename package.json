@@ -1,6 +1,6 @@
 {
   "name": "slack-ai-rewriter",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Slack の入力欄を Gemini AI でリライトする Chrome 拡張機能",
   "license": "MIT",

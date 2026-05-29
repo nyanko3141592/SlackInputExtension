@@ -365,27 +365,91 @@
     let mediaStream = null;
     let audioChunks = [];
     let recording = false;
+    // Volume meter
+    let audioCtx = null;
+    let analyser = null;
+    let volRafId = null;
+    let smoothedVol = 0; // ローパスでカクつき抑制
 
     function setMicState(state) {
       // state: 'idle' | 'recording' | 'transcribing'
       if (state === 'recording') {
         micBtn.textContent = '⏹';
-        micBtn.style.background = 'rgba(255, 92, 92, 0.25)';
+        micBtn.style.background = 'rgba(255, 92, 92, 0.2)';
         micBtn.style.color = '#ff5c5c';
+        micBtn.style.boxShadow = '0 0 0 0 rgba(255, 92, 92, 0.5)';
+        micBtn.style.transition = 'box-shadow 80ms ease-out, background 80ms ease-out';
         micBtn.title = '録音中 (クリックで停止)';
       } else if (state === 'transcribing') {
         micBtn.textContent = '⋯';
         micBtn.style.background = 'rgba(127,127,127,0.2)';
         micBtn.style.color = 'currentColor';
+        micBtn.style.boxShadow = 'none';
+        micBtn.style.transition = '';
         micBtn.title = '文字起こし中...';
         micBtn.disabled = true;
       } else {
         micBtn.textContent = '🎤';
         micBtn.style.background = 'transparent';
         micBtn.style.color = 'currentColor';
-        micBtn.title = '音声で指示を録音 (クリック開始 / もう一度で停止)';
+        micBtn.style.boxShadow = 'none';
+        micBtn.style.transition = '';
+        micBtn.title = '音声で Slack 入力欄に挿入 (クリック開始 / もう一度で停止)';
         micBtn.disabled = false;
       }
+    }
+
+    function startVolumeMeter(stream) {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        audioCtx = new Ctx();
+        const source = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.5;
+        source.connect(analyser);
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+        const tick = () => {
+          if (!recording || !analyser) return;
+          analyser.getByteTimeDomainData(buf);
+          // RMS: 中央値 128 からのズレを 2乗平均
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) {
+            const v = (buf[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / buf.length);
+          // 0〜1 にスケール (RMS は通常 0〜0.3 程度なので *3.5 して頭打ち)
+          const raw = Math.min(1, rms * 3.5);
+          // ローパスで滑らかに (上昇は速く、下降は遅く)
+          smoothedVol = raw > smoothedVol ? raw : smoothedVol * 0.85 + raw * 0.15;
+          // 反映: box-shadow の広がり + 背景の濃度
+          const spread = Math.round(smoothedVol * 14);
+          const blur = Math.round(smoothedVol * 6);
+          const sOpacity = (0.25 + smoothedVol * 0.5).toFixed(2);
+          const bgAlpha = (0.15 + smoothedVol * 0.45).toFixed(2);
+          micBtn.style.boxShadow = `0 0 ${blur}px ${spread}px rgba(255, 92, 92, ${sOpacity})`;
+          micBtn.style.background = `rgba(255, 92, 92, ${bgAlpha})`;
+          volRafId = requestAnimationFrame(tick);
+        };
+        volRafId = requestAnimationFrame(tick);
+      } catch {
+        // AudioContext 失敗時は無視 (録音自体は継続)
+      }
+    }
+
+    function stopVolumeMeter() {
+      if (volRafId) cancelAnimationFrame(volRafId);
+      volRafId = null;
+      if (audioCtx) {
+        try {
+          audioCtx.close();
+        } catch {}
+      }
+      audioCtx = null;
+      analyser = null;
+      smoothedVol = 0;
     }
 
     async function startRecording() {
@@ -404,6 +468,7 @@
         if (e.data.size > 0) audioChunks.push(e.data);
       };
       mediaRecorder.onstop = async () => {
+        stopVolumeMeter();
         if (mediaStream) {
           mediaStream.getTracks().forEach((t) => t.stop());
           mediaStream = null;
@@ -437,11 +502,13 @@
       mediaRecorder.start(500);
       recording = true;
       setMicState('recording');
+      startVolumeMeter(mediaStream);
     }
 
     function stopRecording() {
       if (!recording) return;
       recording = false;
+      stopVolumeMeter();
       try {
         mediaRecorder && mediaRecorder.stop();
       } catch {}
