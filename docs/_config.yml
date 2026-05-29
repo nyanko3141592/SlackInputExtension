@@ -1,0 +1,9 @@
+title: Slack AI Rewriter
+description: Slack の入力欄を Gemini AI でリライト・音声入力できる Chrome 拡張機能
+theme: jekyll-theme-cayman
+lang: ja
+
+# 公開しないファイル
+exclude:
+  - README.md
+  - vendor/
