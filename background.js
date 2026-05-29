@@ -256,6 +256,61 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
   return { result };
 }
 
+// 音声 → AI リライト指示の文字起こし
+const TRANSCRIBE_INSTRUCTION_PROMPT = `添付された音声を聞き取って、Slack メッセージ AI リライトの指示として簡潔な日本語の文字列で出力してください。
+
+【ルール】
+- 「えーと」「あの」などのフィラーは除去
+- 短く明確な指示にする (例: 「もっと丁寧に」「箇条書きに」「英語に変換」「絵文字減らして」)
+- 指示のみを出力。説明や注釈、引用符は不要
+
+例:
+- 音声「えーとー、もうちょっと丁寧にしてほしいかなあ」 → 出力「もっと丁寧に」
+- 音声「箇条書きにしてくれる？」 → 出力「箇条書きに」
+- 音声「英語に翻訳してほしい」 → 出力「英語に翻訳」`;
+
+async function handleTranscribeInstruction({ audioBase64, mimeType }) {
+  if (!audioBase64) throw new Error('音声データがありません');
+  const settings = await getSettings();
+  const { apiKey, gatewayUrl, memberToken } = resolveGateway(settings);
+
+  const body = {
+    contents: [
+      {
+        parts: [
+          { text: TRANSCRIBE_INSTRUCTION_PROMPT },
+          { inline_data: { mime_type: mimeType || 'audio/webm', data: audioBase64 } },
+        ],
+      },
+    ],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 150 },
+  };
+
+  let url;
+  const headers = { 'Content-Type': 'application/json' };
+  if (gatewayUrl) {
+    url = `${gatewayUrl.replace(/\/$/, '')}/v1beta/models/${settings.model}:generateContent`;
+    if (memberToken) headers['X-Member-Token'] = memberToken;
+  } else {
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${settings.model}:generateContent?key=${apiKey}`;
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API Error: ${response.status}`);
+  }
+  const data = await response.json();
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Gemini からのレスポンスが空でした');
+  text = text.trim().replace(/^["「』『」]+|["「』『」]+$/g, '');
+  return { text };
+}
+
 async function handleSavePrompt({ name, icon, prompt }) {
   if (!name || !name.trim()) throw new Error('プロンプト名が空です');
   if (!prompt || !prompt.trim()) throw new Error('プロンプト本文が空です');
@@ -301,6 +356,12 @@ chrome.commands.onCommand.addListener(async (command) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'rewrite') {
     handleRewrite(message)
+      .then(sendResponse)
+      .catch((err) => sendResponse({ error: err.message }));
+    return true;
+  }
+  if (message.action === 'transcribeInstruction') {
+    handleTranscribeInstruction(message)
       .then(sendResponse)
       .catch((err) => sendResponse({ error: err.message }));
     return true;
