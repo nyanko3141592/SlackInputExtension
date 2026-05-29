@@ -6,8 +6,10 @@ const els = {
   apiMode: document.querySelectorAll('input[name="apiMode"]'),
   apiKeyField: document.getElementById('apiKeyField'),
   gatewayField: document.getElementById('gatewayField'),
+  memberTokenField: document.getElementById('memberTokenField'),
   apiKey: document.getElementById('apiKey'),
   gatewayUrl: document.getElementById('gatewayUrl'),
+  memberToken: document.getElementById('memberToken'),
   model: document.getElementById('model'),
   saveApi: document.getElementById('saveApi'),
   apiStatus: document.getElementById('apiStatus'),
@@ -43,9 +45,11 @@ function updateApiModeUi(mode) {
   if (mode === 'gateway') {
     els.apiKeyField.classList.add('hidden');
     els.gatewayField.classList.remove('hidden');
+    els.memberTokenField.classList.remove('hidden');
   } else {
     els.apiKeyField.classList.remove('hidden');
     els.gatewayField.classList.add('hidden');
+    els.memberTokenField.classList.add('hidden');
   }
 }
 
@@ -57,11 +61,12 @@ els.apiMode.forEach((r) => {
 });
 
 async function loadApiSettings() {
-  const data = await chrome.storage.sync.get(['apiKey', 'apiMode', 'gatewayUrl', 'model']);
+  const data = await chrome.storage.sync.get(['apiKey', 'apiMode', 'gatewayUrl', 'memberToken', 'model']);
   const mode = data.apiMode || 'direct';
   document.querySelector(`input[name="apiMode"][value="${mode}"]`).checked = true;
   els.apiKey.value = data.apiKey || '';
   els.gatewayUrl.value = data.gatewayUrl || '';
+  els.memberToken.value = data.memberToken || '';
   els.model.value = data.model || 'gemini-2.5-flash';
   updateApiModeUi(mode);
 }
@@ -72,6 +77,7 @@ els.saveApi.addEventListener('click', async () => {
     apiMode: mode,
     apiKey: els.apiKey.value.trim(),
     gatewayUrl: els.gatewayUrl.value.trim(),
+    memberToken: els.memberToken.value.trim(),
     model: els.model.value,
   };
   if (mode === 'direct' && !data.apiKey) {

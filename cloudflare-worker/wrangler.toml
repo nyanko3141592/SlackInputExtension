@@ -1,0 +1,25 @@
+# Cloudflare Wrangler 設定
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+#
+# 各組織でデプロイする際:
+#   1. name を組織用の一意な名前に変更 (例: yourorg-ai-gateway)
+#   2. wrangler secret put GEMINI_API_KEY
+#   3. wrangler secret put ALLOWED_TOKENS   # 認証付きで運用する場合のみ
+#   4. wrangler deploy
+
+name = "slack-ai-rewriter-gateway"
+main = "worker.js"
+compatibility_date = "2024-12-01"
+
+# Observability: Workers ダッシュボードの Logs タブで確認可能
+[observability]
+enabled = true
+
+# 環境変数の例 (Secret として登録するので wrangler.toml には書かない):
+#   GEMINI_API_KEY     ← Google Gemini APIキー (必須)
+#   ALLOWED_TOKENS     ← 認証付き運用時のみ、カンマ区切りUUID
+#   AI_GATEWAY_URL     ← Cloudflare AI Gateway URL (任意)
+
+# シークレット設定コマンド:
+#   echo "AIzaSy..."           | wrangler secret put GEMINI_API_KEY
+#   echo "uuid1,uuid2,uuid3"   | wrangler secret put ALLOWED_TOKENS

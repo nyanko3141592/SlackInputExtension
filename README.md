@@ -131,10 +131,21 @@ popup.html/js/css    設定 UI（API キー・プロンプト管理）
 generate-icons.js    アイコン生成スクリプト
 scripts/build-zip.js Web Store 用 zip パッケージング
 icons/               16/48/128 PNG
+cloudflare-worker/   組織向け Cloudflare Worker テンプレ (認証あり/なし両対応)
 LICENSE              MIT
 PRIVACY.md           プライバシーポリシー
 STORE_LISTING.md     Chrome Web Store 申請テキスト
 ```
+
+## 組織向け運用 (Cloudflare Worker Gateway)
+
+社内など限定メンバーで運用したい場合は [cloudflare-worker/](./cloudflare-worker/) のテンプレを使ってください。
+1 つの Worker コードで「認証なし」「認証付き」を環境変数で切り替えられます:
+
+- **Open Gateway** — `ALLOWED_TOKENS` 未設定。URL を知っている人なら誰でも利用可能
+- **Auth Gateway** — `ALLOWED_TOKENS` にカンマ区切り UUID。`X-Member-Token` を検証
+
+詳細は [cloudflare-worker/README.md](./cloudflare-worker/README.md) を参照。
 
 ## Web Store 用 ZIP のビルド
 
