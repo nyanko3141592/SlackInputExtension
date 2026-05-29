@@ -1,6 +1,10 @@
-# Slack AI Rewriter プライバシーポリシー
+---
+layout: default
+title: プライバシーポリシー - Slack AI Rewriter
+permalink: /privacy/
+---
 
-> 📌 公開版 (GitHub Pages): <https://nyanko3141592.github.io/SlackInputExtension/privacy/>
+# Slack AI Rewriter プライバシーポリシー
 
 最終更新日: 2026-05-29
 
@@ -85,4 +89,9 @@ Gateway モードを利用する場合、上記の通信は Cloudflare Worker（
 
 本ポリシーに関するお問い合わせは、GitHub Issues までお願いいたします。
 
-https://github.com/nyanko3141592/SlackInputExtension/issues
+<https://github.com/nyanko3141592/SlackInputExtension/issues>
+
+---
+
+このプライバシーポリシーのソースは GitHub で管理されています:
+<https://github.com/nyanko3141592/SlackInputExtension/blob/main/docs/privacy.md>

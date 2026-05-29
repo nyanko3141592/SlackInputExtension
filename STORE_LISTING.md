@@ -222,9 +222,13 @@ Slack の Web 版（app.slack.com および各ワークスペースの slack.com
 
 ## プライバシーポリシーの URL
 
+GitHub Pages でホストした正規版を使う:
+
 ```
-https://github.com/nyanko3141592/SlackInputExtension/blob/main/PRIVACY.md
+https://nyanko3141592.github.io/SlackInputExtension/privacy/
 ```
+
+（リポジトリの `PRIVACY.md` も同内容ですが、Chrome Web Store 申請には独立した URL が必要なので GitHub Pages 版を使用）
 
 ## サポート URL（任意）
 
