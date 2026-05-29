@@ -7,6 +7,26 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-29
+
+### Changed
+
+- **音声入力の挙動を変更**: 🎤 ボタンは「リライト指示」ではなく
+  「**Slack 入力欄に本文として音声挿入**」に再定義
+  - 音声 → Gemini で文字起こし → Slack 入力欄の末尾に追記 (リライトはしない)
+  - 既存テキストがあれば改行で区切る
+  - CoeInput と機能的に被るが、Slack 専用の音声入力として独立
+- **指示入力を複数行対応**: ``<input>`` → ``<textarea>`` に変更
+  - `Enter` で即リライト実行
+  - `Shift+Enter` で改行
+  - 内容に応じて高さ自動調整 (最大 140px)
+
+### Internal
+
+- ``background.js``: ``transcribeInstruction`` → ``transcribeForInput`` に名前変更
+- 本文向けプロンプトに変更 (フィラー除去 + 自然な文章整形)
+- ``appendToEditor`` ヘルパー追加 (Slack 入力欄末尾追記)
+
 ## [0.2.0] - 2026-05-29
 
 ### Added
@@ -39,6 +59,7 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nyanko3141592/SlackInputExtension/releases/tag/v0.1.0
