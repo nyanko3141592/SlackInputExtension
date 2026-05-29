@@ -258,11 +258,28 @@ function escapeHtml(s) {
 }
 
 // ===== 辞書 =====
+// 辞書は chrome.storage.local に保存する (sync は単一アイテム 8KB 制限で
+// 100 件規模の辞書が入らないため)。
 let dictionary = [];
 
 async function loadDictionary() {
-  const data = await chrome.storage.sync.get(['dictionary']);
-  dictionary = Array.isArray(data.dictionary) ? data.dictionary : [];
+  // 先に local をチェック、無ければ古い sync から自動マイグレート
+  const localData = await chrome.storage.local.get(['dictionary']);
+  if (Array.isArray(localData.dictionary)) {
+    dictionary = localData.dictionary;
+  } else {
+    const syncData = await chrome.storage.sync.get(['dictionary']);
+    dictionary = Array.isArray(syncData.dictionary) ? syncData.dictionary : [];
+    if (dictionary.length > 0) {
+      // 旧 sync → local へ移行 (1 度限り)
+      await chrome.storage.local.set({ dictionary });
+      try {
+        await chrome.storage.sync.remove(['dictionary']);
+      } catch {
+        // remove 失敗しても致命的ではないので無視
+      }
+    }
+  }
   renderDictionary();
 }
 
@@ -306,7 +323,12 @@ function renderDictionary() {
 }
 
 async function persistDictionary({ rerender = true } = {}) {
-  await chrome.storage.sync.set({ dictionary });
+  try {
+    await chrome.storage.local.set({ dictionary });
+  } catch (err) {
+    alert(`辞書の保存に失敗しました: ${err.message}`);
+    return;
+  }
   if (rerender) renderDictionary();
   else els.dictCount.textContent = String(dictionary.length);
 }
@@ -481,7 +503,19 @@ els.dictImportFile.addEventListener('change', async (e) => {
         added++;
       }
     }
-    await persistDictionary();
+    try {
+      await chrome.storage.local.set({ dictionary });
+    } catch (err) {
+      alert(
+        `辞書の保存に失敗しました: ${err.message}\n\n` +
+          `辞書は端末ローカル (chrome.storage.local) に保存されます。` +
+          `5MB を超える巨大な辞書は分割してください。`
+      );
+      // ストレージに反映できなかったので画面表示も元に戻す
+      await loadDictionary();
+      return;
+    }
+    renderDictionary();
     alert(`取り込み完了: 新規 ${added} 件 / 上書き ${overwritten} 件`);
   } catch (err) {
     alert(`CSV の読み込みに失敗しました: ${err.message}`);
