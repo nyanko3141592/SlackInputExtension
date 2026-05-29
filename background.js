@@ -126,13 +126,13 @@ function dictionaryHint(dictionary) {
     return `- "${d.from}" → "${d.to}"${note}`;
   });
   return `\n\n【用語辞書 (厳守)】
-以下は「誤変換しがちな表記 → 正しい表記」のマッピングです。出力中で「誤」側の表記が現れる場合は、必ず「正」側の表記に置き換えてください。発音が同じ語句も含めて反映すること。
+以下は「読み (発音や仮名表記) → 表示すべき正式名称」のマッピングです。出力中で「読み」側の表記や、その音に近い表記が現れた場合は、必ず「表示」側の表記に置き換えてください。
 ${lines.join('\n')}`;
 }
 
 function applyDictionary(text, dictionary) {
   if (!text || !dictionary || dictionary.length === 0) return text;
-  // 長い from から順に置換 (短い key が長い key を破壊しないように)
+  // 長い reading から順に置換 (短い key が長い key を破壊しないように)
   const entries = [...dictionary].filter((d) => d.from && d.to).sort((a, b) => b.from.length - a.from.length);
   for (const e of entries) {
     text = text.split(e.from).join(e.to);
