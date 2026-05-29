@@ -315,7 +315,7 @@ els.dictAdd.addEventListener('click', () => {
   const from = els.dictFrom.value.trim();
   const to = els.dictTo.value.trim();
   if (!from || !to) {
-    return alert('「誤」と「正」の両方を入力してください');
+    return alert('「読み」と「表示」の両方を入力してください');
   }
   dictionary.push({
     id: `d-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
@@ -396,18 +396,21 @@ function parseCsv(text) {
   }
   if (rows.length === 0) return [];
   const header = rows[0].map((s) => s.toLowerCase().trim());
-  const fromIdx = header.indexOf('from');
-  const toIdx = header.indexOf('to');
+  // 新仕様: reading / display ; 旧仕様: from / to も互換で受け付ける
+  const readingIdx = ['reading', 'from', 'kana', 'pronunciation']
+    .map((k) => header.indexOf(k))
+    .find((i) => i !== -1);
+  const displayIdx = ['display', 'to', 'notation'].map((k) => header.indexOf(k)).find((i) => i !== -1);
   const noteIdx = header.indexOf('note');
   let dataRows;
   let pickFrom, pickTo, pickNote;
-  if (fromIdx !== -1 && toIdx !== -1) {
+  if (readingIdx !== undefined && displayIdx !== undefined) {
     dataRows = rows.slice(1);
-    pickFrom = (r) => r[fromIdx];
-    pickTo = (r) => r[toIdx];
+    pickFrom = (r) => r[readingIdx];
+    pickTo = (r) => r[displayIdx];
     pickNote = (r) => (noteIdx === -1 ? '' : r[noteIdx]);
   } else {
-    // ヘッダー無し: 列順 from,to,note と仮定
+    // ヘッダー無し: 列順 reading,display,note と仮定
     dataRows = rows;
     pickFrom = (r) => r[0];
     pickTo = (r) => r[1];
@@ -426,7 +429,7 @@ els.dictExport.addEventListener('click', () => {
   if (dictionary.length === 0) {
     return alert('辞書が空です');
   }
-  const header = 'from,to,note\n';
+  const header = 'reading,display,note\n';
   const body = dictionary
     .map((d) => `${csvEscape(d.from)},${csvEscape(d.to)},${csvEscape(d.note || '')}`)
     .join('\n');
@@ -455,7 +458,7 @@ els.dictImportFile.addEventListener('change', async (e) => {
     if (entries.length === 0) {
       alert(
         'CSV から辞書エントリを読み込めませんでした。\n' +
-          'ヘッダー: from,to,note (note 任意) を含む CSV を指定してください。'
+          'ヘッダー: reading,display,note (note 任意 / 旧 from,to も可) を含む CSV を指定してください。'
       );
       return;
     }

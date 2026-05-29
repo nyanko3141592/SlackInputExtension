@@ -7,6 +7,17 @@
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-05-29
+
+### Changed
+
+- **辞書の列名を「読み (reading) / 表示 (display)」に変更** (旧: 誤 / 正)
+  - 用途実態は「LLM が誤変換しやすい読み方を、正式な表記にマッピング」なので、より直感的なラベルに
+  - LLM 用プロンプトの説明文も「読み → 表示」に追従
+- CSV ヘッダーも `reading,display,note` に変更
+  - 旧版 (`from,to,note`) の取り込みも互換で受け付ける (header alias)
+- popup の placeholder 例を一般的な技術用語 (`あいおーえす` → `iOS`) に差し替え
+
 ## [0.5.0] - 2026-05-29
 
 ### Added
@@ -111,7 +122,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.1...v0.3.2

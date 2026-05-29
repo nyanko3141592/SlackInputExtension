@@ -123,8 +123,8 @@
       <div class="dict-toolbar">
         <span class="hint">
           <strong id="dictCount">0</strong> 件登録中。文字起こし・リライト時に
-          <code>誤 → 正</code>
-          で置換します。長い <code>誤</code> から優先的に適用。
+          <code>読み → 表示</code>
+          に置換します。長い <code>読み</code> から優先的に適用。
         </span>
         <div class="dict-toolbar-buttons">
           <input type="file" id="dictImportFile" accept=".csv,text/csv" hidden />
@@ -137,8 +137,8 @@
       <table class="dict-table">
         <thead>
           <tr>
-            <th>誤 (from)</th>
-            <th>正 (to)</th>
+            <th>読み (reading)</th>
+            <th>表示 (display)</th>
             <th>メモ</th>
             <th></th>
           </tr>
@@ -147,16 +147,16 @@
       </table>
 
       <div class="dict-add">
-        <input type="text" id="dictFrom" placeholder="例: こえふぉんと / co fount" />
-        <input type="text" id="dictTo" placeholder="例: CoeFont" />
+        <input type="text" id="dictFrom" placeholder="例: あいおーえす" />
+        <input type="text" id="dictTo" placeholder="例: iOS" />
         <input type="text" id="dictNote" placeholder="メモ (任意)" class="dict-note-input" />
         <button id="dictAdd" class="btn btn-primary">＋ 追加</button>
       </div>
 
       <p class="hint" style="margin-top: 10px">
         CSV フォーマット:
-        <code>from,to,note</code> (UTF-8、ヘッダー必須)。<br />
-        既存と同じ <code>from</code> が import 時に出てきた場合は<strong>上書き</strong>されます。
+        <code>reading,display,note</code> (UTF-8、ヘッダー必須)。<br />
+        既存と同じ <code>reading</code> が import 時に出てきた場合は<strong>上書き</strong>されます。
       </p>
     </section>
 
