@@ -240,8 +240,10 @@
         <span>AI</span>
         <span style="font-size:9px;opacity:0.7">▾</span>
       </button>
+      <button class="sair-mic" title="音声で指示を録音 (クリック開始 / もう一度で停止)"
+        style="display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;color:currentColor;cursor:pointer;padding:0;width:28px;height:26px;border-radius:5px;font-size:14px;font-family:inherit;flex-shrink:0;opacity:0.85">🎤</button>
       <input class="sair-input" type="text"
-        placeholder="AI 指示を書いて Enter (例: もっと丁寧に)"
+        placeholder="AI 指示を書いて Enter (🎤で音声入力可)"
         spellcheck="false"
         style="flex:1 1 auto;min-width:80px;height:26px;padding:0 10px;background:rgba(127,127,127,0.1);border:1px solid transparent;border-radius:5px;color:currentColor;font-size:12.5px;font-family:inherit;outline:none" />
       <button class="sair-close" title="閉じる" style="background:transparent;border:none;color:currentColor;cursor:pointer;padding:0 4px;height:26px;border-radius:5px;font-size:12px;font-family:inherit;opacity:0.5;flex-shrink:0">✗</button>
@@ -250,11 +252,12 @@
     const undoBtn = strip.querySelector('.sair-undo');
     const resetBtn = strip.querySelector('.sair-reset');
     const promptBtn = strip.querySelector('.sair-prompt');
+    const micBtn = strip.querySelector('.sair-mic');
     const input = strip.querySelector('.sair-input');
     const closeBtn = strip.querySelector('.sair-close');
 
     // hover
-    [undoBtn, resetBtn, promptBtn, closeBtn].forEach((b) => {
+    [undoBtn, resetBtn, promptBtn, micBtn, closeBtn].forEach((b) => {
       b.addEventListener('mouseenter', () => {
         b.style.background = 'rgba(127,127,127,0.2)';
         b.style.opacity = '1';
@@ -355,6 +358,104 @@
       } else {
         showGlobalPopup(promptBtn, editor, input, strip);
       }
+    });
+
+    // ======== マイクボタン (音声→文字起こし→自動Enter) ========
+    let mediaRecorder = null;
+    let mediaStream = null;
+    let audioChunks = [];
+    let recording = false;
+
+    function setMicState(state) {
+      // state: 'idle' | 'recording' | 'transcribing'
+      if (state === 'recording') {
+        micBtn.textContent = '⏹';
+        micBtn.style.background = 'rgba(255, 92, 92, 0.25)';
+        micBtn.style.color = '#ff5c5c';
+        micBtn.title = '録音中 (クリックで停止)';
+      } else if (state === 'transcribing') {
+        micBtn.textContent = '⋯';
+        micBtn.style.background = 'rgba(127,127,127,0.2)';
+        micBtn.style.color = 'currentColor';
+        micBtn.title = '文字起こし中...';
+        micBtn.disabled = true;
+      } else {
+        micBtn.textContent = '🎤';
+        micBtn.style.background = 'transparent';
+        micBtn.style.color = 'currentColor';
+        micBtn.title = '音声で指示を録音 (クリック開始 / もう一度で停止)';
+        micBtn.disabled = false;
+      }
+    }
+
+    async function startRecording() {
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        showStripError(input, 'マイクが使えません: ' + (err.message || err.name));
+        return;
+      }
+      audioChunks = [];
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mime });
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+      mediaRecorder.onstop = async () => {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((t) => t.stop());
+          mediaStream = null;
+        }
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        audioChunks = [];
+        if (blob.size < 200) {
+          setMicState('idle');
+          showStripError(input, '録音が短すぎます');
+          return;
+        }
+        setMicState('transcribing');
+        try {
+          const base64 = await blobToBase64(blob);
+          const res = await chrome.runtime.sendMessage({
+            action: 'transcribeInstruction',
+            audioBase64: base64,
+            mimeType: 'audio/webm',
+          });
+          if (res?.error) throw new Error(res.error);
+          const text = (res.text || '').trim();
+          if (!text) throw new Error('指示が認識できませんでした');
+          input.value = text;
+          setMicState('idle');
+          // 自動で Enter (=リライト実行)
+          runRewrite(editor, { promptId: 'oneshot', customInstruction: text });
+          input.value = '';
+        } catch (err) {
+          setMicState('idle');
+          showStripError(input, '✗ ' + (err.message || '文字起こし失敗'));
+        }
+      };
+      mediaRecorder.start(500);
+      recording = true;
+      setMicState('recording');
+    }
+
+    function stopRecording() {
+      if (!recording) return;
+      recording = false;
+      try {
+        mediaRecorder && mediaRecorder.stop();
+      } catch {}
+    }
+
+    micBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    micBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (micBtn.disabled) return;
+      if (recording) stopRecording();
+      else startRecording();
     });
 
     // input handlers
@@ -629,6 +730,30 @@
           "'": '&#39;',
         })[c]
     );
+  }
+
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        const comma = dataUrl.indexOf(',');
+        resolve(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl);
+      };
+      reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function showStripError(input, msg) {
+    const prev = input.placeholder;
+    const prevBorder = input.style.borderColor;
+    input.placeholder = msg;
+    input.style.borderColor = '#ff6b76';
+    setTimeout(() => {
+      input.placeholder = prev || 'AI 指示を書いて Enter (🎤で音声入力可)';
+      input.style.borderColor = prevBorder || 'transparent';
+    }, 3500);
   }
 
   if (document.readyState === 'loading') {

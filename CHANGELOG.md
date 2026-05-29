@@ -7,14 +7,21 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-29
+
 ### Added
 
+- **音声入力** (案 A): ストリップに 🎤 マイクボタンを追加
+  - クリックで録音開始、再クリックで停止
+  - 音声を Gemini に送信して「短い AI 指示文」として文字起こし
+  - 結果を入力欄にセットして自動 Enter → 即リライト実行
+  - フィラー除去・指示の標準化を Gemini 側で行う
 - 拡張機能: popup に「メンバートークン (任意)」フィールドを追加。Gateway モード時に
   `X-Member-Token` ヘッダーとして送出される
 - `cloudflare-worker/` ディレクトリに認証あり/なし両対応の Worker テンプレを同梱
   - `ALLOWED_TOKENS` 環境変数の有無で自動切替
-  - `/admin` (管理 UI) は将来的な拡張用として README に手順記載
   - `wrangler tail` でリアルタイムアクセスログ確認
+- `cloudflare-worker/scripts/` にメンバートークン管理スクリプト (issue / revoke / list)
 
 ## [0.1.0] - 2026-05-28
 
@@ -32,5 +39,6 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nyanko3141592/SlackInputExtension/releases/tag/v0.1.0
