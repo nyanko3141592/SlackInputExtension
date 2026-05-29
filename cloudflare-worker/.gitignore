@@ -1,6 +1,9 @@
 # 実際のメンバートークン (機密情報) は commit しない
 members.json
 
+# 社内固有名詞を含む辞書 (公開リポジトリには載せない)
+internal-dictionary.csv
+
 # Wrangler のローカル開発ファイル
 .dev.vars
 .wrangler/
