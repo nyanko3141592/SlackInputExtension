@@ -215,7 +215,7 @@
     strip.style.cssText = `
       display: flex;
       flex: 1 1 auto;
-      align-items: center;
+      align-items: flex-end;
       gap: 4px;
       min-width: 0;
       padding: 0 6px;
@@ -240,13 +240,14 @@
         <span>AI</span>
         <span style="font-size:9px;opacity:0.7">▾</span>
       </button>
-      <button class="sair-mic" title="音声で指示を録音 (クリック開始 / もう一度で停止)"
-        style="display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;color:currentColor;cursor:pointer;padding:0;width:28px;height:26px;border-radius:5px;font-size:14px;font-family:inherit;flex-shrink:0;opacity:0.85">🎤</button>
-      <input class="sair-input" type="text"
-        placeholder="AI 指示を書いて Enter (🎤で音声入力可)"
+      <button class="sair-mic" title="音声で Slack 入力欄に挿入 (クリック開始 / もう一度で停止)"
+        style="display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;color:currentColor;cursor:pointer;padding:0;width:28px;height:28px;border-radius:5px;font-size:14px;font-family:inherit;flex-shrink:0;opacity:0.85;align-self:flex-end">🎤</button>
+      <textarea class="sair-input"
+        placeholder="AI 指示を書いて Enter (Shift+Enter で改行)"
         spellcheck="false"
-        style="flex:1 1 auto;min-width:80px;height:26px;padding:0 10px;background:rgba(127,127,127,0.1);border:1px solid transparent;border-radius:5px;color:currentColor;font-size:12.5px;font-family:inherit;outline:none" />
-      <button class="sair-close" title="閉じる" style="background:transparent;border:none;color:currentColor;cursor:pointer;padding:0 4px;height:26px;border-radius:5px;font-size:12px;font-family:inherit;opacity:0.5;flex-shrink:0">✗</button>
+        rows="1"
+        style="flex:1 1 auto;min-width:80px;min-height:28px;max-height:140px;padding:5px 10px;background:rgba(127,127,127,0.1);border:1px solid transparent;border-radius:5px;color:currentColor;font-size:12.5px;font-family:inherit;outline:none;resize:none;line-height:1.4;overflow-y:auto"></textarea>
+      <button class="sair-close" title="閉じる" style="background:transparent;border:none;color:currentColor;cursor:pointer;padding:0 4px;height:28px;border-radius:5px;font-size:12px;font-family:inherit;opacity:0.5;flex-shrink:0;align-self:flex-end">✗</button>
     `;
 
     const undoBtn = strip.querySelector('.sair-undo');
@@ -342,9 +343,8 @@
       e.preventDefault();
       e.stopPropagation();
       inputActive = false;
-      // 完全に閉じる場合は strip を削除 (再表示は scanAndInject で再注入)
-      // ただし scanAndInject が即座に再注入するので、ここでは入力欄だけクリア
       input.value = '';
+      input.style.height = 'auto'; // 高さリセット
       // Slack 入力欄に戻す
       try {
         editor.focus();
@@ -419,18 +419,16 @@
         try {
           const base64 = await blobToBase64(blob);
           const res = await chrome.runtime.sendMessage({
-            action: 'transcribeInstruction',
+            action: 'transcribeForInput',
             audioBase64: base64,
             mimeType: 'audio/webm',
           });
           if (res?.error) throw new Error(res.error);
           const text = (res.text || '').trim();
-          if (!text) throw new Error('指示が認識できませんでした');
-          input.value = text;
+          if (!text) throw new Error('音声が認識できませんでした');
+          // Slack 入力欄の末尾に挿入 (リライトは実行しない)
+          appendToEditor(editor, text);
           setMicState('idle');
-          // 自動で Enter (=リライト実行)
-          runRewrite(editor, { promptId: 'oneshot', customInstruction: text });
-          input.value = '';
         } catch (err) {
           setMicState('idle');
           showStripError(input, '✗ ' + (err.message || '文字起こし失敗'));
@@ -470,16 +468,29 @@
       'compositionupdate',
       'compositionend',
     ].forEach((ev) => input.addEventListener(ev, (e) => e.stopPropagation()));
+    // textarea 自動高さ調整
+    const autoResize = () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+    };
+    input.addEventListener('input', autoResize);
+
     input.addEventListener('keydown', (e) => {
       if (e.isComposing) return;
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        // Enter のみ: リライト実行
         e.preventDefault();
         const instr = input.value.trim();
         if (instr) {
           runRewrite(editor, { promptId: 'oneshot', customInstruction: instr });
           input.value = '';
+          autoResize();
         }
-      } else if (e.key === 'ArrowDown') {
+      } else if (e.key === 'Enter' && e.shiftKey) {
+        // Shift+Enter: 改行 (デフォルト動作を許可、ただし高さ更新)
+        setTimeout(autoResize, 0);
+      } else if (e.key === 'ArrowDown' && !e.shiftKey && input.value === '') {
+        // 空欄で ↓: プロンプト一覧
         e.preventDefault();
         if (globalPopup.style.display === 'block') hideGlobalPopup();
         else showGlobalPopup(promptBtn, editor, input, strip);
@@ -586,6 +597,41 @@
     }
   }
 
+  // Slack 入力欄の末尾にテキストを追記
+  function appendToEditor(el, text) {
+    if (!el || !text) return;
+    isReplacing = true;
+    try {
+      el.focus();
+      // キャレットを末尾に
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false); // 末尾
+      sel.addRange(range);
+      // 既存テキストが空でなければ改行で区切る
+      const current = el.innerText.replace(/\s+$/g, '');
+      const insert = current ? '\n' + text : text;
+      const ok = document.execCommand('insertText', false, insert);
+      if (!ok) {
+        el.dispatchEvent(
+          new InputEvent('beforeinput', {
+            inputType: 'insertText',
+            data: insert,
+            bubbles: true,
+            cancelable: true,
+          })
+        );
+      }
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    } finally {
+      setTimeout(() => {
+        isReplacing = false;
+      }, 80);
+    }
+  }
+
   // ======== リライト実行 ========
   async function runRewrite(editor, { promptId, customInstruction }) {
     if (busy || !editor) return;
@@ -615,10 +661,13 @@
       setTimeout(() => {
         const composer = editor.closest('.c-wysiwyg_container');
         const inp = composer ? composer.querySelector('.sair-input') : null;
-        if (inp)
+        if (inp) {
           try {
+            inp.value = '';
+            inp.style.height = 'auto';
             inp.focus();
           } catch {}
+        }
       }, 120);
     } catch (err) {
       session.stack.pop();

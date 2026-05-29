@@ -256,20 +256,18 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
   return { result };
 }
 
-// 音声 → AI リライト指示の文字起こし
-const TRANSCRIBE_INSTRUCTION_PROMPT = `添付された音声を聞き取って、Slack メッセージ AI リライトの指示として簡潔な日本語の文字列で出力してください。
+// 音声 → Slack メッセージ本文として整形
+const TRANSCRIBE_INPUT_PROMPT = `添付された音声を聞き取って、Slack メッセージの本文として自然な日本語の文章で出力してください。
 
 【ルール】
 - 「えーと」「あの」などのフィラーは除去
-- 短く明確な指示にする (例: 「もっと丁寧に」「箇条書きに」「英語に変換」「絵文字減らして」)
-- 指示のみを出力。説明や注釈、引用符は不要
+- 話し言葉のニュアンスを保ちつつ読みやすく整形
+- ビジネスチャットに適度な丁寧さ
+- 文意は変えない
+- 句読点を適切に補う
+- 本文のみを出力。説明や注釈、引用符は不要`;
 
-例:
-- 音声「えーとー、もうちょっと丁寧にしてほしいかなあ」 → 出力「もっと丁寧に」
-- 音声「箇条書きにしてくれる？」 → 出力「箇条書きに」
-- 音声「英語に翻訳してほしい」 → 出力「英語に翻訳」`;
-
-async function handleTranscribeInstruction({ audioBase64, mimeType }) {
+async function handleTranscribeForInput({ audioBase64, mimeType }) {
   if (!audioBase64) throw new Error('音声データがありません');
   const settings = await getSettings();
   const { apiKey, gatewayUrl, memberToken } = resolveGateway(settings);
@@ -278,12 +276,12 @@ async function handleTranscribeInstruction({ audioBase64, mimeType }) {
     contents: [
       {
         parts: [
-          { text: TRANSCRIBE_INSTRUCTION_PROMPT },
+          { text: TRANSCRIBE_INPUT_PROMPT },
           { inline_data: { mime_type: mimeType || 'audio/webm', data: audioBase64 } },
         ],
       },
     ],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 150 },
+    generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
   };
 
   let url;
@@ -360,8 +358,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch((err) => sendResponse({ error: err.message }));
     return true;
   }
-  if (message.action === 'transcribeInstruction') {
-    handleTranscribeInstruction(message)
+  if (message.action === 'transcribeForInput') {
+    handleTranscribeForInput(message)
       .then(sendResponse)
       .catch((err) => sendResponse({ error: err.message }));
     return true;
