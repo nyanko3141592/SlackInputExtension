@@ -73,12 +73,14 @@ async function loadApiSettings() {
 
 els.saveApi.addEventListener('click', async () => {
   const mode = document.querySelector('input[name="apiMode"]:checked').value;
+  // モデル名は前後空白を除去し、空なら推奨デフォルトを使う
+  const modelInput = els.model.value.trim();
   const data = {
     apiMode: mode,
     apiKey: els.apiKey.value.trim(),
     gatewayUrl: els.gatewayUrl.value.trim(),
     memberToken: els.memberToken.value.trim(),
-    model: els.model.value,
+    model: modelInput || 'gemini-2.5-flash',
   };
   if (mode === 'direct' && !data.apiKey) {
     return flashStatus('API キーを入力してください', true);
@@ -86,7 +88,15 @@ els.saveApi.addEventListener('click', async () => {
   if (mode === 'gateway' && !data.gatewayUrl) {
     return flashStatus('Gateway URL を入力してください', true);
   }
+  // 明らかに不正なモデル名 (gemini プレフィックス無し) を軽く警告
+  if (!/^gemini[-\w.]*$/i.test(data.model)) {
+    if (!confirm(`モデル名 "${data.model}" は Gemini の命名規則と異なります。このまま保存しますか？`)) {
+      return;
+    }
+  }
   await chrome.storage.sync.set(data);
+  // 反映した値を再描画 (空入力時のフォールバック表示)
+  els.model.value = data.model;
   flashStatus('✓ 保存しました');
 });
 

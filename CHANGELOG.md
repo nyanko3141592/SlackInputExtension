@@ -7,6 +7,21 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-29
+
+### Changed
+
+- **モデル選択を自由入力に変更**: 固定 `<select>` から `<input>` + `<datalist>` に。
+  推奨候補から選ぶことも、任意のモデル名を直接入力することも可能に。
+  - 新しい Gemini モデル (3 系 preview など) が出たときに popup から即試せる
+  - 既存ユーザーは未保存なら gemini-2.5-flash がそのままデフォルト
+  - 命名規則 (`gemini-...`) と異なる場合は保存時に確認ダイアログ
+
+### Added
+
+- プリセット候補に `gemini-3-pro-preview` / `gemini-3-flash-preview` を追加
+- 公式モデル一覧ページへのリンクを popup に追加
+
 ## [0.3.2] - 2026-05-29
 
 ### Added
@@ -77,7 +92,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.2.0...v0.3.0
