@@ -1,0 +1,7 @@
+# 実際のメンバートークン (機密情報) は commit しない
+members.json
+
+# Wrangler のローカル開発ファイル
+.dev.vars
+.wrangler/
+node_modules/
