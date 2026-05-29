@@ -1,5 +1,7 @@
 // Slack AI Rewriter - Popup
 
+const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
+
 const els = {
   tabs: document.querySelectorAll('.tab'),
   panels: document.querySelectorAll('.panel'),
@@ -24,6 +26,18 @@ const els = {
   deletePrompt: document.getElementById('deletePrompt'),
   addPrompt: document.getElementById('addPrompt'),
   resetPrompts: document.getElementById('resetPrompts'),
+
+  // 辞書
+  dictTbody: document.getElementById('dictTbody'),
+  dictCount: document.getElementById('dictCount'),
+  dictFrom: document.getElementById('dictFrom'),
+  dictTo: document.getElementById('dictTo'),
+  dictNote: document.getElementById('dictNote'),
+  dictAdd: document.getElementById('dictAdd'),
+  dictImport: document.getElementById('dictImport'),
+  dictImportFile: document.getElementById('dictImportFile'),
+  dictExport: document.getElementById('dictExport'),
+  dictClear: document.getElementById('dictClear'),
 };
 
 let prompts = [];
@@ -67,7 +81,7 @@ async function loadApiSettings() {
   els.apiKey.value = data.apiKey || '';
   els.gatewayUrl.value = data.gatewayUrl || '';
   els.memberToken.value = data.memberToken || '';
-  els.model.value = data.model || 'gemini-2.5-flash';
+  els.model.value = data.model || DEFAULT_MODEL;
   updateApiModeUi(mode);
 }
 
@@ -80,7 +94,7 @@ els.saveApi.addEventListener('click', async () => {
     apiKey: els.apiKey.value.trim(),
     gatewayUrl: els.gatewayUrl.value.trim(),
     memberToken: els.memberToken.value.trim(),
-    model: modelInput || 'gemini-2.5-flash',
+    model: modelInput || DEFAULT_MODEL,
   };
   if (mode === 'direct' && !data.apiKey) {
     return flashStatus('API キーを入力してください', true);
@@ -243,6 +257,236 @@ function escapeHtml(s) {
   );
 }
 
+// ===== 辞書 =====
+let dictionary = [];
+
+async function loadDictionary() {
+  const data = await chrome.storage.sync.get(['dictionary']);
+  dictionary = Array.isArray(data.dictionary) ? data.dictionary : [];
+  renderDictionary();
+}
+
+function renderDictionary() {
+  els.dictCount.textContent = String(dictionary.length);
+  els.dictTbody.innerHTML = '';
+  if (dictionary.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="4" class="dict-empty">まだ辞書エントリがありません</td>';
+    els.dictTbody.appendChild(tr);
+    return;
+  }
+  // 長い from から表示 (適用順と一致させる)
+  const sorted = [...dictionary].sort((a, b) => (b.from || '').length - (a.from || '').length);
+  sorted.forEach((entry) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" data-field="from" /></td>
+      <td><input type="text" data-field="to" /></td>
+      <td><input type="text" data-field="note" /></td>
+      <td><button class="dict-del" title="削除">×</button></td>
+    `;
+    tr.querySelector('[data-field="from"]').value = entry.from || '';
+    tr.querySelector('[data-field="to"]').value = entry.to || '';
+    tr.querySelector('[data-field="note"]').value = entry.note || '';
+    tr.querySelectorAll('input').forEach((inp) => {
+      inp.addEventListener('change', () => {
+        entry[inp.dataset.field] = inp.value;
+        // 配列内の同 id を上書き
+        const idx = dictionary.findIndex((x) => x.id === entry.id);
+        if (idx !== -1) dictionary[idx] = entry;
+        persistDictionary({ rerender: false });
+      });
+    });
+    tr.querySelector('.dict-del').addEventListener('click', () => {
+      dictionary = dictionary.filter((x) => x.id !== entry.id);
+      persistDictionary();
+    });
+    els.dictTbody.appendChild(tr);
+  });
+}
+
+async function persistDictionary({ rerender = true } = {}) {
+  await chrome.storage.sync.set({ dictionary });
+  if (rerender) renderDictionary();
+  else els.dictCount.textContent = String(dictionary.length);
+}
+
+els.dictAdd.addEventListener('click', () => {
+  const from = els.dictFrom.value.trim();
+  const to = els.dictTo.value.trim();
+  if (!from || !to) {
+    return alert('「誤」と「正」の両方を入力してください');
+  }
+  dictionary.push({
+    id: `d-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
+    from,
+    to,
+    note: els.dictNote.value.trim(),
+  });
+  els.dictFrom.value = '';
+  els.dictTo.value = '';
+  els.dictNote.value = '';
+  persistDictionary();
+  els.dictFrom.focus();
+});
+
+// Enter で追加
+[els.dictFrom, els.dictTo, els.dictNote].forEach((inp) => {
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      els.dictAdd.click();
+    }
+  });
+});
+
+els.dictClear.addEventListener('click', () => {
+  if (dictionary.length === 0) return;
+  if (!confirm(`辞書を全削除します (${dictionary.length} 件)。よろしいですか？`)) return;
+  dictionary = [];
+  persistDictionary();
+});
+
+// ===== CSV import / export =====
+function csvEscape(s) {
+  s = String(s ?? '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+function parseCsv(text) {
+  // BOM 除去
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  const rows = [];
+  let row = [];
+  let cur = '';
+  let inQuote = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuote) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuote = false;
+        }
+      } else {
+        cur += c;
+      }
+    } else {
+      if (c === '"') inQuote = true;
+      else if (c === ',') {
+        row.push(cur);
+        cur = '';
+      } else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(cur);
+        rows.push(row);
+        row = [];
+        cur = '';
+      } else cur += c;
+    }
+  }
+  if (cur !== '' || row.length) {
+    row.push(cur);
+    rows.push(row);
+  }
+  if (rows.length === 0) return [];
+  const header = rows[0].map((s) => s.toLowerCase().trim());
+  const fromIdx = header.indexOf('from');
+  const toIdx = header.indexOf('to');
+  const noteIdx = header.indexOf('note');
+  let dataRows;
+  let pickFrom, pickTo, pickNote;
+  if (fromIdx !== -1 && toIdx !== -1) {
+    dataRows = rows.slice(1);
+    pickFrom = (r) => r[fromIdx];
+    pickTo = (r) => r[toIdx];
+    pickNote = (r) => (noteIdx === -1 ? '' : r[noteIdx]);
+  } else {
+    // ヘッダー無し: 列順 from,to,note と仮定
+    dataRows = rows;
+    pickFrom = (r) => r[0];
+    pickTo = (r) => r[1];
+    pickNote = (r) => r[2];
+  }
+  return dataRows
+    .map((r) => ({
+      from: (pickFrom(r) || '').trim(),
+      to: (pickTo(r) || '').trim(),
+      note: (pickNote(r) || '').trim(),
+    }))
+    .filter((e) => e.from && e.to);
+}
+
+els.dictExport.addEventListener('click', () => {
+  if (dictionary.length === 0) {
+    return alert('辞書が空です');
+  }
+  const header = 'from,to,note\n';
+  const body = dictionary
+    .map((d) => `${csvEscape(d.from)},${csvEscape(d.to)},${csvEscape(d.note || '')}`)
+    .join('\n');
+  // Excel 互換のため UTF-8 BOM 付与
+  const csv = '﻿' + header + body + '\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const today = new Date().toISOString().split('T')[0];
+  a.download = `slack-ai-rewriter-dictionary-${today}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+els.dictImport.addEventListener('click', () => els.dictImportFile.click());
+
+els.dictImportFile.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const entries = parseCsv(text);
+    if (entries.length === 0) {
+      alert(
+        'CSV から辞書エントリを読み込めませんでした。\n' +
+          'ヘッダー: from,to,note (note 任意) を含む CSV を指定してください。'
+      );
+      return;
+    }
+    const existingMap = new Map(dictionary.map((d) => [d.from, d]));
+    let added = 0;
+    let overwritten = 0;
+    for (const ent of entries) {
+      if (existingMap.has(ent.from)) {
+        const cur = existingMap.get(ent.from);
+        cur.to = ent.to;
+        cur.note = ent.note;
+        overwritten++;
+      } else {
+        const newEntry = {
+          id: `d-${Date.now()}-${Math.floor(Math.random() * 99999)}`,
+          ...ent,
+        };
+        dictionary.push(newEntry);
+        existingMap.set(ent.from, newEntry);
+        added++;
+      }
+    }
+    await persistDictionary();
+    alert(`取り込み完了: 新規 ${added} 件 / 上書き ${overwritten} 件`);
+  } catch (err) {
+    alert(`CSV の読み込みに失敗しました: ${err.message}`);
+  }
+  els.dictImportFile.value = '';
+});
+
 // ===== 初期化 =====
 loadApiSettings();
 loadPrompts();
+loadDictionary();

@@ -7,6 +7,25 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-29
+
+### Added
+
+- **辞書機能**: popup に「辞書」タブを追加。
+  - 誤変換しやすい語 (`from`) と正しい表記 (`to`)、メモ (任意) を登録
+  - リライト・音声文字起こしの両方で自動置換
+  - LLM プロンプトに辞書ヒントを注入 + 後処理でも機械置換 (二重ガード)
+  - **CSV 取り込み / 書き出し** に対応 (UTF-8 BOM 付き、Excel 互換)
+  - フォーマット: `from,to,note` ヘッダー必須
+  - 既存と同じ `from` を取り込んだ場合は上書き
+
+### Changed
+
+- **デフォルトモデルを `gemini-2.5-flash-lite` に変更**: より高速。リライト用途では十分な品質。
+  - 既存ユーザーで未保存の人にも適用
+  - LEGACY_MODEL_MAP も flash-lite 寄せに更新 (`gemini-2.0-flash` → `flash-lite`)
+- popup datalist の並び順を変更: `flash-lite` を先頭に
+
 ## [0.4.0] - 2026-05-29
 
 ### Changed
@@ -92,7 +111,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.0...v0.3.1

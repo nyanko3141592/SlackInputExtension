@@ -119,13 +119,35 @@ const SYSTEM_INSTRUCTION_TEMPLATE = `あなたは Slack のメッセージリラ
 - 元テキストに含まれる URL、メンション、絵文字ショートコード (:smile: 等)、コードブロックの中身は改変しない
 - 元テキストに無い情報を勝手に追加しない`;
 
-function buildPrompt(originalText, promptDef, customInstruction) {
+function dictionaryHint(dictionary) {
+  if (!dictionary || dictionary.length === 0) return '';
+  const lines = dictionary.map((d) => {
+    const note = d.note ? ` // ${d.note}` : '';
+    return `- "${d.from}" → "${d.to}"${note}`;
+  });
+  return `\n\n【用語辞書 (厳守)】
+以下は「誤変換しがちな表記 → 正しい表記」のマッピングです。出力中で「誤」側の表記が現れる場合は、必ず「正」側の表記に置き換えてください。発音が同じ語句も含めて反映すること。
+${lines.join('\n')}`;
+}
+
+function applyDictionary(text, dictionary) {
+  if (!text || !dictionary || dictionary.length === 0) return text;
+  // 長い from から順に置換 (短い key が長い key を破壊しないように)
+  const entries = [...dictionary].filter((d) => d.from && d.to).sort((a, b) => b.from.length - a.from.length);
+  for (const e of entries) {
+    text = text.split(e.from).join(e.to);
+  }
+  return text;
+}
+
+function buildPrompt(originalText, promptDef, customInstruction, dictionary) {
   const system = SYSTEM_INSTRUCTION_TEMPLATE.replace('{rules}', SLACK_MRKDWN_RULES);
   const instructionBlock = customInstruction
     ? `${promptDef.prompt}\n\n【追加の指示】\n${customInstruction}`
     : promptDef.prompt;
+  const dictBlock = dictionaryHint(dictionary);
 
-  return `${system}
+  return `${system}${dictBlock}
 
 【リライトの方針: ${promptDef.name}】
 ${instructionBlock}
@@ -137,13 +159,15 @@ ${originalText}
 }
 
 const LEGACY_MODEL_MAP = {
-  'gemini-2.0-flash': 'gemini-2.5-flash',
+  'gemini-2.0-flash': 'gemini-2.5-flash-lite',
   'gemini-2.0-flash-lite': 'gemini-2.5-flash-lite',
   'gemini-1.5-flash': 'gemini-2.5-flash-lite',
 };
 
+const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
+
 function resolveModel(stored) {
-  if (!stored) return 'gemini-2.5-flash';
+  if (!stored) return DEFAULT_MODEL;
   return LEGACY_MODEL_MAP[stored] || stored;
 }
 
@@ -155,6 +179,7 @@ async function getSettings() {
     'memberToken',
     'model',
     'prompts',
+    'dictionary',
   ]);
   return {
     apiKey: data.apiKey || '',
@@ -163,6 +188,7 @@ async function getSettings() {
     memberToken: data.memberToken || '',
     model: resolveModel(data.model),
     prompts: Array.isArray(data.prompts) && data.prompts.length > 0 ? data.prompts : DEFAULT_PROMPTS,
+    dictionary: Array.isArray(data.dictionary) ? data.dictionary : [],
   };
 }
 
@@ -231,29 +257,29 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
       prompt: customInstruction.trim(),
     };
     // oneshot は customInstruction を本体に使うので追加指示は不要
-    const prompt = buildPrompt(originalText, promptDef, null);
-    const result = await callGemini({
+    const prompt = buildPrompt(originalText, promptDef, null, settings.dictionary);
+    const rawResult = await callGemini({
       apiKey,
       model: settings.model,
       prompt,
       gatewayUrl,
       memberToken,
     });
-    return { result };
+    return { result: applyDictionary(rawResult, settings.dictionary) };
   }
 
   promptDef = settings.prompts.find((p) => p.id === promptId);
   if (!promptDef) throw new Error('プロンプトが見つかりません');
 
-  const prompt = buildPrompt(originalText, promptDef, customInstruction);
-  const result = await callGemini({
+  const prompt = buildPrompt(originalText, promptDef, customInstruction, settings.dictionary);
+  const rawResult = await callGemini({
     apiKey,
     model: settings.model,
     prompt,
     gatewayUrl,
     memberToken,
   });
-  return { result };
+  return { result: applyDictionary(rawResult, settings.dictionary) };
 }
 
 // 音声 → Slack メッセージ本文として整形
@@ -272,11 +298,12 @@ async function handleTranscribeForInput({ audioBase64, mimeType }) {
   const settings = await getSettings();
   const { apiKey, gatewayUrl, memberToken } = resolveGateway(settings);
 
+  const promptText = TRANSCRIBE_INPUT_PROMPT + dictionaryHint(settings.dictionary);
   const body = {
     contents: [
       {
         parts: [
-          { text: TRANSCRIBE_INPUT_PROMPT },
+          { text: promptText },
           { inline_data: { mime_type: mimeType || 'audio/webm', data: audioBase64 } },
         ],
       },
@@ -306,6 +333,8 @@ async function handleTranscribeForInput({ audioBase64, mimeType }) {
   let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error('Gemini からのレスポンスが空でした');
   text = text.trim().replace(/^["「』『」]+|["「』『」]+$/g, '');
+  // 保険として後処理でも辞書を機械適用 (LLM が無視した場合のフォールバック)
+  text = applyDictionary(text, settings.dictionary);
   return { text };
 }
 

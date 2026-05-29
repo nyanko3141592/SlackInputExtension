@@ -14,6 +14,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="api">API 設定</button>
       <button class="tab" data-tab="prompts">プロンプト</button>
+      <button class="tab" data-tab="dictionary">辞書</button>
       <button class="tab" data-tab="help">ヘルプ</button>
     </div>
 
@@ -63,16 +64,16 @@
           type="text"
           id="model"
           list="modelPresets"
-          placeholder="gemini-2.5-flash"
+          placeholder="gemini-2.5-flash-lite"
           autocomplete="off"
           spellcheck="false"
         />
         <datalist id="modelPresets">
-          <option value="gemini-3-pro-preview">最新の Gemini 3 Pro preview (速い・高品質)</option>
+          <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (デフォルト・最速)</option>
           <option value="gemini-3-flash-preview">Gemini 3 Flash preview</option>
-          <option value="gemini-2.5-flash">Gemini 2.5 Flash (安定)</option>
-          <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (軽量)</option>
-          <option value="gemini-2.5-pro">Gemini 2.5 Pro (高品質)</option>
+          <option value="gemini-3-pro-preview">Gemini 3 Pro preview (高品質)</option>
+          <option value="gemini-2.5-flash">Gemini 2.5 Flash (バランス)</option>
+          <option value="gemini-2.5-pro">Gemini 2.5 Pro (高品質・遅め)</option>
         </datalist>
         <p class="hint">
           プリセットから選ぶか、任意のモデル名を直接入力できます。<br />
@@ -115,6 +116,48 @@
       </div>
 
       <button id="addPrompt" class="btn btn-secondary add-btn">+ プロンプトを追加</button>
+    </section>
+
+    <!-- 辞書 -->
+    <section class="panel" data-panel="dictionary">
+      <div class="dict-toolbar">
+        <span class="hint">
+          <strong id="dictCount">0</strong> 件登録中。文字起こし・リライト時に
+          <code>誤 → 正</code>
+          で置換します。長い <code>誤</code> から優先的に適用。
+        </span>
+        <div class="dict-toolbar-buttons">
+          <input type="file" id="dictImportFile" accept=".csv,text/csv" hidden />
+          <button id="dictImport" class="btn btn-secondary" title="CSV から取り込み">📥 取り込み</button>
+          <button id="dictExport" class="btn btn-secondary" title="CSV にエクスポート">📤 書き出し</button>
+          <button id="dictClear" class="btn btn-link" title="全削除">↺ 全削除</button>
+        </div>
+      </div>
+
+      <table class="dict-table">
+        <thead>
+          <tr>
+            <th>誤 (from)</th>
+            <th>正 (to)</th>
+            <th>メモ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="dictTbody"></tbody>
+      </table>
+
+      <div class="dict-add">
+        <input type="text" id="dictFrom" placeholder="例: こえふぉんと / co fount" />
+        <input type="text" id="dictTo" placeholder="例: CoeFont" />
+        <input type="text" id="dictNote" placeholder="メモ (任意)" class="dict-note-input" />
+        <button id="dictAdd" class="btn btn-primary">＋ 追加</button>
+      </div>
+
+      <p class="hint" style="margin-top: 10px">
+        CSV フォーマット:
+        <code>from,to,note</code> (UTF-8、ヘッダー必須)。<br />
+        既存と同じ <code>from</code> が import 時に出てきた場合は<strong>上書き</strong>されます。
+      </p>
     </section>
 
     <!-- ヘルプ -->
