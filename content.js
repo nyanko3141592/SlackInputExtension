@@ -365,6 +365,11 @@
     let mediaStream = null;
     let audioChunks = [];
     let recording = false;
+    // 最大録音時間制限
+    const MAX_RECORDING_MS = 5 * 60 * 1000; // 5 分
+    const WARN_BEFORE_MS = 30 * 1000; // 残り 30 秒で警告
+    let maxDurationTimerId = null;
+    let warningTimerId = null;
     // Volume meter
     let audioCtx = null;
     let analyser = null;
@@ -503,11 +508,34 @@
       recording = true;
       setMicState('recording');
       startVolumeMeter(mediaStream);
+
+      // 残り 30 秒で警告 (input placeholder で通知)
+      warningTimerId = setTimeout(() => {
+        if (recording) {
+          showStripError(input, '⚠️ 残り 30 秒で自動停止します (最大 5 分)');
+        }
+      }, MAX_RECORDING_MS - WARN_BEFORE_MS);
+
+      // 5 分で自動停止
+      maxDurationTimerId = setTimeout(() => {
+        if (recording) {
+          stopRecording();
+          showStripError(input, '⏱ 最大録音時間 (5分) に達したので停止しました');
+        }
+      }, MAX_RECORDING_MS);
     }
 
     function stopRecording() {
       if (!recording) return;
       recording = false;
+      if (maxDurationTimerId) {
+        clearTimeout(maxDurationTimerId);
+        maxDurationTimerId = null;
+      }
+      if (warningTimerId) {
+        clearTimeout(warningTimerId);
+        warningTimerId = null;
+      }
       stopVolumeMeter();
       try {
         mediaRecorder && mediaRecorder.stop();

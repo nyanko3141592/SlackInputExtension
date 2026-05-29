@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-29
+
+### Added
+
+- **音声入力に最大録音時間 5 分の制限**: 長時間誤録音による API コスト爆発・
+  リクエストサイズ上限超過を防止
+  - 残り 30 秒で input placeholder に警告表示
+  - 5 分到達で自動停止 + 録音内容はそのまま文字起こしへ進む
+
 ## [0.3.1] - 2026-05-29
 
 ### Added
@@ -68,7 +77,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.1.0...v0.2.0
