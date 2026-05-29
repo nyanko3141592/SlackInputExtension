@@ -172,23 +172,34 @@ function resolveModel(stored) {
 }
 
 async function getSettings() {
-  const data = await chrome.storage.sync.get([
-    'apiKey',
-    'apiMode',
-    'gatewayUrl',
-    'memberToken',
-    'model',
-    'prompts',
-    'dictionary',
+  // 設定は sync (端末間同期したい)、辞書は local (8KB/item の制限を回避)
+  // ただし旧バージョンで sync.dictionary に書かれていた場合のフォールバックも持つ
+  const [syncData, localData] = await Promise.all([
+    chrome.storage.sync.get([
+      'apiKey',
+      'apiMode',
+      'gatewayUrl',
+      'memberToken',
+      'model',
+      'prompts',
+      'dictionary',
+    ]),
+    chrome.storage.local.get(['dictionary']),
   ]);
+  const dictionary = Array.isArray(localData.dictionary)
+    ? localData.dictionary
+    : Array.isArray(syncData.dictionary)
+      ? syncData.dictionary
+      : [];
   return {
-    apiKey: data.apiKey || '',
-    apiMode: data.apiMode || 'direct',
-    gatewayUrl: data.gatewayUrl || '',
-    memberToken: data.memberToken || '',
-    model: resolveModel(data.model),
-    prompts: Array.isArray(data.prompts) && data.prompts.length > 0 ? data.prompts : DEFAULT_PROMPTS,
-    dictionary: Array.isArray(data.dictionary) ? data.dictionary : [],
+    apiKey: syncData.apiKey || '',
+    apiMode: syncData.apiMode || 'direct',
+    gatewayUrl: syncData.gatewayUrl || '',
+    memberToken: syncData.memberToken || '',
+    model: resolveModel(syncData.model),
+    prompts:
+      Array.isArray(syncData.prompts) && syncData.prompts.length > 0 ? syncData.prompts : DEFAULT_PROMPTS,
+    dictionary,
   };
 }
 

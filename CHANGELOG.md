@@ -7,6 +7,20 @@
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-05-29
+
+### Fixed
+
+- **辞書を `chrome.storage.local` に変更**: 大規模辞書 (100 件規模) を
+  取り込もうとすると `Resource::kQuotaBytesPerItem quota exceeded` で
+  保存できない問題を修正。
+  - `chrome.storage.sync` は単一アイテム 8KB の制限があり、社内辞書のような
+    数 KB を超える単一値は保存不可
+  - 辞書は **同期不要 (各メンバー個別に管理する想定)** なので local へ移行
+  - local は単一アイテム制限なし / 全体 5MB
+- 旧バージョンの sync.dictionary を起動時に自動で local へ移行 + sync 側を削除
+- 取り込み失敗時のエラーメッセージを具体的に
+
 ## [0.5.1] - 2026-05-29
 
 ### Changed
@@ -122,7 +136,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.2...v0.4.0
