@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-29
+
+### Added
+
+- **録音中の音量フィードバック**: マイクボタンが入力ボリュームに応じて
+  脈動 (box-shadow が広がり、背景濃度が増す)
+- AudioContext + AnalyserNode で RMS を計算、ローパスフィルタで滑らかに
+- 録音停止・文字起こし完了で自動的にアイドル状態へ復帰
+
 ## [0.3.0] - 2026-05-29
 
 ### Changed
@@ -59,7 +68,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nyanko3141592/SlackInputExtension/releases/tag/v0.1.0
