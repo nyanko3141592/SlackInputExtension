@@ -148,11 +148,19 @@ function resolveModel(stored) {
 }
 
 async function getSettings() {
-  const data = await chrome.storage.sync.get(['apiKey', 'apiMode', 'gatewayUrl', 'model', 'prompts']);
+  const data = await chrome.storage.sync.get([
+    'apiKey',
+    'apiMode',
+    'gatewayUrl',
+    'memberToken',
+    'model',
+    'prompts',
+  ]);
   return {
     apiKey: data.apiKey || '',
     apiMode: data.apiMode || 'direct',
     gatewayUrl: data.gatewayUrl || '',
+    memberToken: data.memberToken || '',
     model: resolveModel(data.model),
     prompts: Array.isArray(data.prompts) && data.prompts.length > 0 ? data.prompts : DEFAULT_PROMPTS,
   };
@@ -160,30 +168,37 @@ async function getSettings() {
 
 function resolveGateway(settings) {
   if (settings.apiMode === 'gateway' && settings.gatewayUrl) {
-    return { apiKey: null, gatewayUrl: settings.gatewayUrl };
+    return {
+      apiKey: null,
+      gatewayUrl: settings.gatewayUrl,
+      memberToken: settings.memberToken || '',
+    };
   }
   if (!settings.apiKey) {
     throw new Error('API キーが未設定です。拡張機能アイコンから API キーを設定してください。');
   }
-  return { apiKey: settings.apiKey, gatewayUrl: null };
+  return { apiKey: settings.apiKey, gatewayUrl: null, memberToken: '' };
 }
 
-async function callGemini({ apiKey, model, prompt, gatewayUrl }) {
+async function callGemini({ apiKey, model, prompt, gatewayUrl, memberToken }) {
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
   };
 
   let url;
+  const headers = { 'Content-Type': 'application/json' };
   if (gatewayUrl) {
     url = `${gatewayUrl.replace(/\/$/, '')}/v1beta/models/${model}:generateContent`;
+    // 認証付き Gateway のみ X-Member-Token を添付
+    if (memberToken) headers['X-Member-Token'] = memberToken;
   } else {
     url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   }
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
   });
 
@@ -203,7 +218,7 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
     throw new Error('リライト対象のテキストがありません');
   }
   const settings = await getSettings();
-  const { apiKey, gatewayUrl } = resolveGateway(settings);
+  const { apiKey, gatewayUrl, memberToken } = resolveGateway(settings);
 
   let promptDef;
   if (promptId === 'oneshot') {
@@ -217,7 +232,13 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
     };
     // oneshot は customInstruction を本体に使うので追加指示は不要
     const prompt = buildPrompt(originalText, promptDef, null);
-    const result = await callGemini({ apiKey, model: settings.model, prompt, gatewayUrl });
+    const result = await callGemini({
+      apiKey,
+      model: settings.model,
+      prompt,
+      gatewayUrl,
+      memberToken,
+    });
     return { result };
   }
 
@@ -230,6 +251,7 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
     model: settings.model,
     prompt,
     gatewayUrl,
+    memberToken,
   });
   return { result };
 }

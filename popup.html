@@ -46,6 +46,17 @@
         <p class="hint">Worker 側で API キーを注入する場合</p>
       </div>
 
+      <div class="field hidden" id="memberTokenField">
+        <label for="memberToken"
+          >メンバートークン <span style="font-weight: 400; color: #616061">(任意)</span></label
+        >
+        <input type="password" id="memberToken" placeholder="認証付きWorkerの場合のみ" autocomplete="off" />
+        <p class="hint">
+          認証付きの Gateway を使う場合のみ入力。組織から配布された UUID を貼り付け。<br />
+          認証なしの公開 Gateway を使う場合は空のままで OK。
+        </p>
+      </div>
+
       <div class="field">
         <label for="model">モデル</label>
         <select id="model">

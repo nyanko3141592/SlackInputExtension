@@ -45,6 +45,22 @@ export default [
     },
   },
   {
+    // Cloudflare Worker (ESM, fetch/Response/Headers などのグローバル)
+    files: ['cloudflare-worker/**/*.js'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        ...globals.worker,
+        fetch: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
+        Headers: 'readonly',
+        URL: 'readonly',
+        console: 'readonly',
+      },
+    },
+  },
+  {
     ignores: ['node_modules/', 'dist/', 'icons/', '*.zip', 'pnpm-lock.yaml'],
   },
 ];

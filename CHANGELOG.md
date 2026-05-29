@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- 拡張機能: popup に「メンバートークン (任意)」フィールドを追加。Gateway モード時に
+  `X-Member-Token` ヘッダーとして送出される
+- `cloudflare-worker/` ディレクトリに認証あり/なし両対応の Worker テンプレを同梱
+  - `ALLOWED_TOKENS` 環境変数の有無で自動切替
+  - `/admin` (管理 UI) は将来的な拡張用として README に手順記載
+  - `wrangler tail` でリアルタイムアクセスログ確認
+
 ## [0.1.0] - 2026-05-28
 
 ### Added
