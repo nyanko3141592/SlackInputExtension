@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Slack AI Rewriter",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Slack の入力欄を AI でリライト。丁寧/整理/構造化など複数のプロンプトを登録して使い分け。Slack Markdown に準拠した出力。",
   "author": "Yellston",
   "icons": {
