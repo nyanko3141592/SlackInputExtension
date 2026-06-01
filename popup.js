@@ -13,6 +13,7 @@ const els = {
   gatewayUrl: document.getElementById('gatewayUrl'),
   memberToken: document.getElementById('memberToken'),
   model: document.getElementById('model'),
+  transcribeModel: document.getElementById('transcribeModel'),
   saveApi: document.getElementById('saveApi'),
   apiStatus: document.getElementById('apiStatus'),
 
@@ -75,13 +76,21 @@ els.apiMode.forEach((r) => {
 });
 
 async function loadApiSettings() {
-  const data = await chrome.storage.sync.get(['apiKey', 'apiMode', 'gatewayUrl', 'memberToken', 'model']);
+  const data = await chrome.storage.sync.get([
+    'apiKey',
+    'apiMode',
+    'gatewayUrl',
+    'memberToken',
+    'model',
+    'transcribeModel',
+  ]);
   const mode = data.apiMode || 'direct';
   document.querySelector(`input[name="apiMode"][value="${mode}"]`).checked = true;
   els.apiKey.value = data.apiKey || '';
   els.gatewayUrl.value = data.gatewayUrl || '';
   els.memberToken.value = data.memberToken || '';
   els.model.value = data.model || DEFAULT_MODEL;
+  els.transcribeModel.value = data.transcribeModel || '';
   updateApiModeUi(mode);
 }
 
@@ -89,12 +98,14 @@ els.saveApi.addEventListener('click', async () => {
   const mode = document.querySelector('input[name="apiMode"]:checked').value;
   // モデル名は前後空白を除去し、空なら推奨デフォルトを使う
   const modelInput = els.model.value.trim();
+  const transcribeInput = els.transcribeModel.value.trim();
   const data = {
     apiMode: mode,
     apiKey: els.apiKey.value.trim(),
     gatewayUrl: els.gatewayUrl.value.trim(),
     memberToken: els.memberToken.value.trim(),
     model: modelInput || DEFAULT_MODEL,
+    transcribeModel: transcribeInput, // 空文字なら "未指定 (自動)" を意味する
   };
   if (mode === 'direct' && !data.apiKey) {
     return flashStatus('API キーを入力してください', true);
@@ -108,9 +119,19 @@ els.saveApi.addEventListener('click', async () => {
       return;
     }
   }
+  if (data.transcribeModel && !/^gemini[-\w.]*$/i.test(data.transcribeModel)) {
+    if (
+      !confirm(
+        `文字起こしモデル "${data.transcribeModel}" は Gemini の命名規則と異なります。このまま保存しますか？`
+      )
+    ) {
+      return;
+    }
+  }
   await chrome.storage.sync.set(data);
   // 反映した値を再描画 (空入力時のフォールバック表示)
   els.model.value = data.model;
+  els.transcribeModel.value = data.transcribeModel;
   flashStatus('✓ 保存しました');
 });
 

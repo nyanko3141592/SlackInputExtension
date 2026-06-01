@@ -171,11 +171,16 @@ function resolveModel(stored) {
   return LEGACY_MODEL_MAP[stored] || stored;
 }
 
-// 音声文字起こし時は flash-lite だと精度が極端に落ちることがあるので
-// 内部的にひとつ上の grade (flash) に自動アップグレードする。
-// 既に flash 以上を指定している場合はそのまま使う。
-function resolveTranscribeModel(stored) {
-  const m = resolveModel(stored);
+// 音声文字起こし用モデル解決
+// 優先順位:
+//  1. ユーザーが popup で明示的に指定した settings.transcribeModel
+//  2. リライト用 model が flash-lite の場合: 自動で gemini-2.5-flash に昇格
+//     (lite は音声理解の精度が落ちるため)
+//  3. それ以外: リライト用 model をそのまま使う
+function resolveTranscribeModel(settings) {
+  const explicit = (settings.transcribeModel || '').trim();
+  if (explicit) return LEGACY_MODEL_MAP[explicit] || explicit;
+  const m = resolveModel(settings.model);
   if (m === 'gemini-2.5-flash-lite' || m.endsWith('-flash-lite')) {
     return 'gemini-2.5-flash';
   }
@@ -192,6 +197,7 @@ async function getSettings() {
       'gatewayUrl',
       'memberToken',
       'model',
+      'transcribeModel',
       'prompts',
       'dictionary',
     ]),
@@ -208,6 +214,7 @@ async function getSettings() {
     gatewayUrl: syncData.gatewayUrl || '',
     memberToken: syncData.memberToken || '',
     model: resolveModel(syncData.model),
+    transcribeModel: syncData.transcribeModel || '',
     prompts:
       Array.isArray(syncData.prompts) && syncData.prompts.length > 0 ? syncData.prompts : DEFAULT_PROMPTS,
     dictionary,
@@ -304,23 +311,23 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
   return { result: applyDictionary(rawResult, settings.dictionary) };
 }
 
-// 音声 → Slack メッセージ本文として整形
-const TRANSCRIBE_INPUT_PROMPT = `添付された日本語音声を可能な限り正確に聞き取り、Slack メッセージの本文として自然な日本語の文章で出力してください。
+// 音声 → そのまま忠実に書き起こす (補正しない / 整形しない)
+const TRANSCRIBE_INPUT_PROMPT = `添付された日本語音声を、聞こえたとおりにそのまま書き起こしてください。
 
-【最優先】
-- 聞き取り精度を最優先にする。聞こえた音をそのまま忠実に書き起こす
-- 解釈や補完で別の単語に置き換えない
-- 自信のない箇所は、最も近い読みのまま出してよい（後から人が直す）
+【最優先 - 補正しない】
+- 聞こえた音をそのまま忠実にテキスト化する
+- フィラー（「えーと」「あの」「まあ」「ん〜」「えー」等）も省略せず書く
+- 言い直し・言いよどみ・同じ単語の繰り返しもそのまま残す
+- 内容を要約・補完・整形しない
+- 別の単語に言い換えない・敬語の調整もしない
+- 自信のない箇所は、最も近い音をひらがな or カタカナで書く（無理に意味づけしない）
 
-【整形ルール】
-- 「えーと」「あの」「まあ」などのフィラーは除去
-- 話し言葉のニュアンスを保ちつつ読みやすく整形
-- ビジネスチャットに適度な丁寧さ
-- 文意は変えない
-- 句読点を適切に補う
+【整形は最低限】
+- 句読点は音の自然な切れ目に合わせて入れる（過剰には入れない）
+- 改行は段落の明らかな切れ目だけ
 
 【出力】
-- 本文のみを出力。説明や注釈、引用符 (「" など) は付けない`;
+- 書き起こしテキストのみを出力。説明・注釈・引用符 (「" など) は付けない`;
 
 async function handleTranscribeForInput({ audioBase64, mimeType }) {
   if (!audioBase64) throw new Error('音声データがありません');
@@ -328,7 +335,8 @@ async function handleTranscribeForInput({ audioBase64, mimeType }) {
   const { apiKey, gatewayUrl, memberToken } = resolveGateway(settings);
 
   // 音声起こしは flash-lite だと聞き取り精度が落ちるので flash 以上にアップグレード
-  const transcribeModel = resolveTranscribeModel(settings.model);
+  // (ユーザーが popup で明示指定していたらそれを優先)
+  const transcribeModel = resolveTranscribeModel(settings);
 
   const promptText = TRANSCRIBE_INPUT_PROMPT + dictionaryHint(settings.dictionary);
   const body = {
