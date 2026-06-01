@@ -6,6 +6,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -25,7 +29,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Generate icons
         run: pnpm build:icons
@@ -44,6 +48,19 @@ jobs:
           VERSION=$(node -p "require('./manifest.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "zip=slack-ai-rewriter-v${VERSION}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches manifest version
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TAG_REF: ${{ github.ref_name }}
+          MANIFEST_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          TAG_VER="${TAG_REF#v}"
+          if [ "$TAG_VER" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag ($TAG_REF) does not match manifest.json version ($MANIFEST_VERSION)"
+            exit 1
+          fi
+          echo "✓ tag matches manifest: v$MANIFEST_VERSION"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')

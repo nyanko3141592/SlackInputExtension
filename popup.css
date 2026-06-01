@@ -406,18 +406,51 @@ code {
   border-color: #4a154b;
   background: #fff;
 }
-.dict-table .dict-del {
+.dict-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+.dict-row-actions button {
   background: transparent;
   border: none;
-  color: #b3261e;
   cursor: pointer;
-  padding: 2px 6px;
-  font-size: 14px;
+  padding: 2px 5px;
+  font-size: 13px;
   line-height: 1;
   border-radius: 4px;
 }
+.dict-table .dict-save {
+  color: #007a5a;
+}
+.dict-table .dict-save:hover {
+  background: #e6fff0;
+}
+.dict-table .dict-revert {
+  color: #616061;
+}
+.dict-table .dict-revert:hover {
+  background: #ebebec;
+}
+.dict-table .dict-del {
+  color: #b3261e;
+  font-size: 14px;
+}
 .dict-table .dict-del:hover {
   background: #fdecea;
+}
+/* 未保存行のハイライト */
+.dict-table tr.dirty {
+  background: #fff7e6;
+}
+.dict-table tr.dirty input[type='text'] {
+  background: #fffaf0;
+}
+/* 保存直後のフラッシュ */
+.dict-table tr.saved-flash {
+  background: #d6f5e3;
+  transition: background 0.8s ease-out;
 }
 .dict-table .dict-empty {
   text-align: center;
@@ -429,16 +462,30 @@ code {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  padding: 10px;
-  background: #fafafa;
+  padding: 12px;
+  background: #f7f3fa;
   border-radius: 8px;
-  border: 1px dashed #ddd;
+  border: 1px dashed #c5b5cf;
+}
+.dict-add-label {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a154b;
+  margin-bottom: 2px;
 }
 .dict-add .dict-note-input {
   grid-column: 1 / -1;
 }
 .dict-add .btn-primary {
   grid-column: 1 / -1;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+.dict-add .dict-add-hint {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  color: #616061;
 }
 
 /* ===== Help panel ===== */
