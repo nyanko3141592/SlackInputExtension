@@ -192,13 +192,18 @@
       </table>
 
       <div class="dict-add">
-        <input type="text" id="dictFrom" placeholder="例: あいおーえす" />
-        <input type="text" id="dictTo" placeholder="例: iOS" />
+        <div class="dict-add-label">＋ 新しいエントリを追加</div>
+        <input type="text" id="dictFrom" placeholder="読み (例: あいおーえす)" />
+        <input type="text" id="dictTo" placeholder="表示 (例: iOS)" />
         <input type="text" id="dictNote" placeholder="メモ (任意)" class="dict-note-input" />
         <button id="dictAdd" class="btn btn-primary">＋ 追加</button>
+        <p class="hint dict-add-hint">
+          「読み」と「表示」を入力 → <strong>＋ 追加</strong> をクリックで反映。
+        </p>
       </div>
 
       <p class="hint" style="margin-top: 10px">
+        テーブル内の値を編集すると行が黄色く強調されます。 💾 で保存 / ↺ で取消。<br />
         CSV フォーマット:
         <code>reading,display,note</code> (UTF-8、ヘッダー必須)。<br />
         既存と同じ <code>reading</code> が import 時に出てきた場合は<strong>上書き</strong>されます。

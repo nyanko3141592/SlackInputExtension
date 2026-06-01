@@ -7,6 +7,28 @@
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-06-01
+
+### Changed
+
+- **辞書編集の挙動を「明示保存」に変更**: 既存エントリを編集しても
+  サイレントに自動保存されず、行を黄色く強調 + 行末に
+  💾 / ↺ ボタンを表示。明示的にクリックした時のみ反映する。
+  - 保存後は行が緑にフラッシュして反映を視覚化
+  - 取消ボタンで編集前に戻せる
+- 新規追加時の Enter キーでの自動確定を廃止。誤入力で追加されてしまう
+  問題に対応。**＋ 追加 ボタンのクリック** で明示確定する形に統一
+  - パワーユーザー向けに Ctrl/Cmd+Enter のショートカットだけ残す
+- 追加フォーム枠をブランドカラーで強調し、placeholder にも
+  「読み / 表示」を併記して何を入れるべきか明確化
+- 削除ボタンを押した時の確認ダイアログに対象エントリ名を含めるよう改善
+
+### Internal
+
+- CI workflow に concurrency group / frozen-lockfile を追加して
+  in-flight build の重複と lockfile drift を抑止
+- Release workflow に tag と manifest.json の version 一致チェックを追加
+
 ## [0.6.1] - 2026-06-01
 
 ### Added
@@ -185,7 +207,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.2...v0.5.3

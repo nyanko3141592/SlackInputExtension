@@ -360,24 +360,72 @@ function renderDictionary() {
       <td><input type="text" data-field="from" /></td>
       <td><input type="text" data-field="to" /></td>
       <td><input type="text" data-field="note" /></td>
-      <td><button class="dict-del" title="削除">×</button></td>
+      <td class="dict-row-actions">
+        <button class="dict-save" title="変更を保存" hidden>💾</button>
+        <button class="dict-revert" title="元に戻す" hidden>↺</button>
+        <button class="dict-del" title="削除">×</button>
+      </td>
     `;
-    tr.querySelector('[data-field="from"]').value = entry.from || '';
-    tr.querySelector('[data-field="to"]').value = entry.to || '';
-    tr.querySelector('[data-field="note"]').value = entry.note || '';
-    tr.querySelectorAll('input').forEach((inp) => {
-      inp.addEventListener('change', () => {
-        entry[inp.dataset.field] = inp.value;
-        // 配列内の同 id を上書き
-        const idx = dictionary.findIndex((x) => x.id === entry.id);
-        if (idx !== -1) dictionary[idx] = entry;
-        persistDictionary({ rerender: false });
-      });
+    const fromInp = tr.querySelector('[data-field="from"]');
+    const toInp = tr.querySelector('[data-field="to"]');
+    const noteInp = tr.querySelector('[data-field="note"]');
+    const saveBtn = tr.querySelector('.dict-save');
+    const revertBtn = tr.querySelector('.dict-revert');
+    const delBtn = tr.querySelector('.dict-del');
+
+    fromInp.value = entry.from || '';
+    toInp.value = entry.to || '';
+    noteInp.value = entry.note || '';
+
+    const inputs = [fromInp, toInp, noteInp];
+
+    const isDirty = () =>
+      fromInp.value !== (entry.from || '') ||
+      toInp.value !== (entry.to || '') ||
+      noteInp.value !== (entry.note || '');
+
+    const refreshDirtyUi = () => {
+      const dirty = isDirty();
+      tr.classList.toggle('dirty', dirty);
+      saveBtn.hidden = !dirty;
+      revertBtn.hidden = !dirty;
+    };
+
+    inputs.forEach((inp) => inp.addEventListener('input', refreshDirtyUi));
+
+    saveBtn.addEventListener('click', async () => {
+      const newFrom = fromInp.value.trim();
+      const newTo = toInp.value.trim();
+      if (!newFrom || !newTo) {
+        return alert('「読み」と「表示」の両方が必要です');
+      }
+      entry.from = newFrom;
+      entry.to = newTo;
+      entry.note = noteInp.value.trim();
+      const idx = dictionary.findIndex((x) => x.id === entry.id);
+      if (idx !== -1) dictionary[idx] = entry;
+      await persistDictionary({ rerender: false });
+      // 視覚フィードバック
+      tr.classList.remove('dirty');
+      tr.classList.add('saved-flash');
+      setTimeout(() => tr.classList.remove('saved-flash'), 800);
+      refreshDirtyUi();
     });
-    tr.querySelector('.dict-del').addEventListener('click', () => {
+
+    revertBtn.addEventListener('click', () => {
+      fromInp.value = entry.from || '';
+      toInp.value = entry.to || '';
+      noteInp.value = entry.note || '';
+      refreshDirtyUi();
+    });
+
+    delBtn.addEventListener('click', () => {
+      const label = entry.from ? `"${entry.from}" → "${entry.to}"` : 'このエントリ';
+      if (!confirm(`${label} を削除しますか？`)) return;
       dictionary = dictionary.filter((x) => x.id !== entry.id);
       persistDictionary();
     });
+
     els.dictTbody.appendChild(tr);
   });
 }
@@ -397,10 +445,11 @@ els.dictAdd.addEventListener('click', () => {
   const from = els.dictFrom.value.trim();
   const to = els.dictTo.value.trim();
   if (!from || !to) {
-    return alert('「読み」と「表示」の両方を入力してください');
+    return alert('「読み」と「表示」の両方を入力してから ＋追加 を押してください');
   }
+  const newId = `d-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
   dictionary.push({
-    id: `d-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
+    id: newId,
     from,
     to,
     note: els.dictNote.value.trim(),
@@ -410,12 +459,27 @@ els.dictAdd.addEventListener('click', () => {
   els.dictNote.value = '';
   persistDictionary();
   els.dictFrom.focus();
+  // 追加した行をハイライト
+  setTimeout(() => {
+    // renderDictionary 後に対象行を探す。dataset は持たせていないが
+    // input 値から逆引きする。
+    for (const tr of els.dictTbody.querySelectorAll('tr')) {
+      const f = tr.querySelector('[data-field="from"]');
+      if (f && f.value === from) {
+        tr.classList.add('saved-flash');
+        setTimeout(() => tr.classList.remove('saved-flash'), 800);
+        break;
+      }
+    }
+  }, 0);
 });
 
-// Enter で追加
+// 注: Enter キーで自動追加していたが、タイポ Enter で誤発火するため廃止。
+// 追加は必ず「＋追加」ボタンクリックで明示的に行う。
+// (Ctrl/Cmd+Enter なら追加: パワーユーザー向けショートカットだけ残す)
 [els.dictFrom, els.dictTo, els.dictNote].forEach((inp) => {
   inp.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       els.dictAdd.click();
     }
