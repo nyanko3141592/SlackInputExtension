@@ -171,6 +171,17 @@ function resolveModel(stored) {
   return LEGACY_MODEL_MAP[stored] || stored;
 }
 
+// 音声文字起こし時は flash-lite だと精度が極端に落ちることがあるので
+// 内部的にひとつ上の grade (flash) に自動アップグレードする。
+// 既に flash 以上を指定している場合はそのまま使う。
+function resolveTranscribeModel(stored) {
+  const m = resolveModel(stored);
+  if (m === 'gemini-2.5-flash-lite' || m.endsWith('-flash-lite')) {
+    return 'gemini-2.5-flash';
+  }
+  return m;
+}
+
 async function getSettings() {
   // 設定は sync (端末間同期したい)、辞書は local (8KB/item の制限を回避)
   // ただし旧バージョンで sync.dictionary に書かれていた場合のフォールバックも持つ
@@ -294,20 +305,30 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
 }
 
 // 音声 → Slack メッセージ本文として整形
-const TRANSCRIBE_INPUT_PROMPT = `添付された音声を聞き取って、Slack メッセージの本文として自然な日本語の文章で出力してください。
+const TRANSCRIBE_INPUT_PROMPT = `添付された日本語音声を可能な限り正確に聞き取り、Slack メッセージの本文として自然な日本語の文章で出力してください。
 
-【ルール】
-- 「えーと」「あの」などのフィラーは除去
+【最優先】
+- 聞き取り精度を最優先にする。聞こえた音をそのまま忠実に書き起こす
+- 解釈や補完で別の単語に置き換えない
+- 自信のない箇所は、最も近い読みのまま出してよい（後から人が直す）
+
+【整形ルール】
+- 「えーと」「あの」「まあ」などのフィラーは除去
 - 話し言葉のニュアンスを保ちつつ読みやすく整形
 - ビジネスチャットに適度な丁寧さ
 - 文意は変えない
 - 句読点を適切に補う
-- 本文のみを出力。説明や注釈、引用符は不要`;
+
+【出力】
+- 本文のみを出力。説明や注釈、引用符 (「" など) は付けない`;
 
 async function handleTranscribeForInput({ audioBase64, mimeType }) {
   if (!audioBase64) throw new Error('音声データがありません');
   const settings = await getSettings();
   const { apiKey, gatewayUrl, memberToken } = resolveGateway(settings);
+
+  // 音声起こしは flash-lite だと聞き取り精度が落ちるので flash 以上にアップグレード
+  const transcribeModel = resolveTranscribeModel(settings.model);
 
   const promptText = TRANSCRIBE_INPUT_PROMPT + dictionaryHint(settings.dictionary);
   const body = {
@@ -319,16 +340,17 @@ async function handleTranscribeForInput({ audioBase64, mimeType }) {
         ],
       },
     ],
-    generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+    // 文字起こしは創造性より忠実さ。temperature を低めに固定
+    generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
   };
 
   let url;
   const headers = { 'Content-Type': 'application/json' };
   if (gatewayUrl) {
-    url = `${gatewayUrl.replace(/\/$/, '')}/v1beta/models/${settings.model}:generateContent`;
+    url = `${gatewayUrl.replace(/\/$/, '')}/v1beta/models/${transcribeModel}:generateContent`;
     if (memberToken) headers['X-Member-Token'] = memberToken;
   } else {
-    url = `https://generativelanguage.googleapis.com/v1beta/models/${settings.model}:generateContent?key=${apiKey}`;
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${transcribeModel}:generateContent?key=${apiKey}`;
   }
 
   const response = await fetch(url, {

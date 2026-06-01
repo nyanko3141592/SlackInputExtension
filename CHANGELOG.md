@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-06-01
+
+### Fixed
+
+- **音声入力の文字起こし精度を改善**: `gemini-2.5-flash-lite` (デフォルト) は
+  音声理解の精度が低く、まったく違う文章が起こされるケースがあったため、
+  **音声起こし時のみ自動で `gemini-2.5-flash` 以上にアップグレード**する。
+  - ユーザー設定は触らないので、テキストリライトは引き続き lite で速い
+  - lite 以外のモデルを指定している場合はそのまま使う
+- 文字起こしプロンプトを精度優先に書き換え (`temperature` を 0.4 → 0.2)
+  - 「聞こえた音をそのまま忠実に書き起こす」を最優先指示に
+  - 解釈で別単語に置き換えないよう明示
+
 ## [0.5.2] - 2026-05-29
 
 ### Fixed
@@ -136,7 +149,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.4.0...v0.5.0
