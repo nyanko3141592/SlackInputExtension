@@ -210,6 +210,18 @@ code {
   color: #b3261e;
 }
 
+/* ===== Section header (h2 + side button) ===== */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+.section-header h2 {
+  margin: 0;
+}
+
 /* ===== Prompt list ===== */
 .prompts-toolbar {
   display: flex;

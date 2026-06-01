@@ -198,6 +198,7 @@ async function getSettings() {
       'memberToken',
       'model',
       'transcribeModel',
+      'transcribePrompt',
       'prompts',
       'dictionary',
     ]),
@@ -215,6 +216,7 @@ async function getSettings() {
     memberToken: syncData.memberToken || '',
     model: resolveModel(syncData.model),
     transcribeModel: syncData.transcribeModel || '',
+    transcribePrompt: (syncData.transcribePrompt || '').trim() || DEFAULT_TRANSCRIBE_PROMPT,
     prompts:
       Array.isArray(syncData.prompts) && syncData.prompts.length > 0 ? syncData.prompts : DEFAULT_PROMPTS,
     dictionary,
@@ -311,16 +313,20 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
   return { result: applyDictionary(rawResult, settings.dictionary) };
 }
 
-// 音声 → そのまま忠実に書き起こす (補正しない / 整形しない)
-const TRANSCRIBE_INPUT_PROMPT = `添付された日本語音声を、聞こえたとおりにそのまま書き起こしてください。
+// 音声 → 書き起こし用デフォルトプロンプト
+// ユーザーは popup の「プロンプト」タブで自由に編集できる
+const DEFAULT_TRANSCRIBE_PROMPT = `添付された日本語音声を、聞こえたとおりに忠実に書き起こしてください。
 
 【最優先 - 補正しない】
 - 聞こえた音をそのまま忠実にテキスト化する
-- フィラー（「えーと」「あの」「まあ」「ん〜」「えー」等）も省略せず書く
-- 言い直し・言いよどみ・同じ単語の繰り返しもそのまま残す
+- 言い直し・言いよどみ・同じ単語の繰り返しはそのまま残す
 - 内容を要約・補完・整形しない
 - 別の単語に言い換えない・敬語の調整もしない
 - 自信のない箇所は、最も近い音をひらがな or カタカナで書く（無理に意味づけしない）
+
+【フィラーのみ削除】
+- 「えーと」「あの」「まあ」「ん〜」「えー」「そのー」など、意味のないつなぎ語は削除する
+- ただし、フィラー以外の発話内容（言い直し・繰り返しを含む）は変えない
 
 【整形は最低限】
 - 句読点は音の自然な切れ目に合わせて入れる（過剰には入れない）
@@ -338,7 +344,7 @@ async function handleTranscribeForInput({ audioBase64, mimeType }) {
   // (ユーザーが popup で明示指定していたらそれを優先)
   const transcribeModel = resolveTranscribeModel(settings);
 
-  const promptText = TRANSCRIBE_INPUT_PROMPT + dictionaryHint(settings.dictionary);
+  const promptText = settings.transcribePrompt + dictionaryHint(settings.dictionary);
   const body = {
     contents: [
       {
@@ -446,6 +452,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.action === 'getDefaultPrompts') {
     sendResponse(DEFAULT_PROMPTS);
+    return false;
+  }
+  if (message.action === 'getDefaultTranscribePrompt') {
+    sendResponse(DEFAULT_TRANSCRIBE_PROMPT);
     return false;
   }
 });

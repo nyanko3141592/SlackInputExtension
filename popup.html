@@ -114,12 +114,34 @@
 
     <!-- プロンプト -->
     <section class="panel" data-panel="prompts">
-      <div class="prompts-toolbar">
-        <span class="hint"
-          >クリックで編集。並び替えは↑↓。Slack mrkdwn 形式の出力ルールは自動付与されます。</span
-        >
+      <div class="section-header">
+        <h2 style="margin: 0">🎤 文字起こしプロンプト</h2>
+        <button id="resetTranscribePrompt" class="btn btn-link" title="デフォルトに戻す">
+          ↺ デフォルトに戻す
+        </button>
+      </div>
+      <p class="hint" style="margin-top: 0">
+        音声入力時に Gemini に渡す指示文。フィラー削除や整形ルールなど、好みに合わせて編集可。
+      </p>
+      <textarea
+        id="transcribePromptBody"
+        rows="10"
+        placeholder="(デフォルトを使用する場合は空でも OK)"
+      ></textarea>
+      <div class="editor-actions" style="margin-bottom: 16px">
+        <span id="transcribePromptStatus" class="status"></span>
+        <button id="saveTranscribePrompt" class="btn btn-primary">保存</button>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid #ececed; margin: 16px 0" />
+
+      <div class="section-header">
+        <h2 style="margin: 0">✨ リライト用プロンプト</h2>
         <button id="resetPrompts" class="btn btn-link" title="デフォルトに戻す">↺ デフォルトに戻す</button>
       </div>
+      <p class="hint" style="margin-top: 0">
+        クリックで編集。並び替えは↑↓。Slack mrkdwn 形式の出力ルールは自動付与されます。
+      </p>
 
       <ul id="promptList" class="prompt-list"></ul>
 

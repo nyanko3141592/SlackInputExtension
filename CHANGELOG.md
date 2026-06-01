@@ -7,6 +7,23 @@
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-06-01
+
+### Added
+
+- **文字起こしプロンプトを popup で編集可能に**
+  - 「プロンプト」タブの最上部に「🎤 文字起こしプロンプト」セクションを追加
+  - 自由に編集 / 「↺ デフォルトに戻す」ボタンで初期化
+  - 空のまま保存するとデフォルトを使用 (chrome.storage の transcribePrompt を削除)
+  - storage キー: `transcribePrompt` (sync)
+
+### Changed
+
+- **デフォルト文字起こしプロンプトに「フィラー削除」を再追加**
+  - 「えーと / あの / まあ / ん〜 / えー / そのー」など意味のないつなぎ語は削除
+  - ただし、言い直し・繰り返し・本文内容は引き続き残す (= 補正しない)
+  - 「補正しない」と「フィラー削除」を両立する形に
+
 ## [0.6.0] - 2026-06-01
 
 ### Changed
@@ -168,7 +185,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.1...v0.5.2

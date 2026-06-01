@@ -28,6 +28,12 @@ const els = {
   addPrompt: document.getElementById('addPrompt'),
   resetPrompts: document.getElementById('resetPrompts'),
 
+  // 文字起こしプロンプト
+  transcribePromptBody: document.getElementById('transcribePromptBody'),
+  saveTranscribePrompt: document.getElementById('saveTranscribePrompt'),
+  resetTranscribePrompt: document.getElementById('resetTranscribePrompt'),
+  transcribePromptStatus: document.getElementById('transcribePromptStatus'),
+
   // 辞書
   dictTbody: document.getElementById('dictTbody'),
   dictCount: document.getElementById('dictCount'),
@@ -44,6 +50,7 @@ const els = {
 let prompts = [];
 let editingId = null;
 let defaultPrompts = [];
+let defaultTranscribePrompt = '';
 
 // ===== タブ =====
 els.tabs.forEach((t) => {
@@ -144,16 +151,48 @@ function flashStatus(msg, isError = false) {
 
 // ===== プロンプト =====
 async function loadPrompts() {
-  const [data, defaults] = await Promise.all([
-    chrome.storage.sync.get(['prompts']),
+  const [data, defaults, defaultTranscribe] = await Promise.all([
+    chrome.storage.sync.get(['prompts', 'transcribePrompt']),
     chrome.runtime.sendMessage({ action: 'getDefaultPrompts' }),
+    chrome.runtime.sendMessage({ action: 'getDefaultTranscribePrompt' }),
   ]);
   defaultPrompts = defaults || [];
+  defaultTranscribePrompt = defaultTranscribe || '';
   prompts =
     Array.isArray(data.prompts) && data.prompts.length > 0
       ? data.prompts
       : JSON.parse(JSON.stringify(defaultPrompts));
+  // 文字起こしプロンプト: ユーザー保存がなければ default を表示
+  els.transcribePromptBody.value = (data.transcribePrompt || '').trim() || defaultTranscribePrompt;
   renderPrompts();
+}
+
+// 文字起こしプロンプトの保存
+els.saveTranscribePrompt.addEventListener('click', async () => {
+  const body = els.transcribePromptBody.value.trim();
+  // 空 / デフォルトと同じならストレージから削除 (デフォルトを使う)
+  if (!body || body === defaultTranscribePrompt) {
+    await chrome.storage.sync.remove(['transcribePrompt']);
+    els.transcribePromptBody.value = defaultTranscribePrompt;
+    flashTranscribeStatus('✓ デフォルトに戻しました');
+    return;
+  }
+  await chrome.storage.sync.set({ transcribePrompt: body });
+  flashTranscribeStatus('✓ 保存しました');
+});
+
+els.resetTranscribePrompt.addEventListener('click', async () => {
+  if (!confirm('文字起こしプロンプトをデフォルトに戻しますか？')) return;
+  await chrome.storage.sync.remove(['transcribePrompt']);
+  els.transcribePromptBody.value = defaultTranscribePrompt;
+  flashTranscribeStatus('✓ デフォルトに戻しました');
+});
+
+function flashTranscribeStatus(msg) {
+  if (!els.transcribePromptStatus) return;
+  els.transcribePromptStatus.textContent = msg;
+  els.transcribePromptStatus.classList.add('show');
+  setTimeout(() => els.transcribePromptStatus.classList.remove('show'), 1800);
 }
 
 function renderPrompts() {
