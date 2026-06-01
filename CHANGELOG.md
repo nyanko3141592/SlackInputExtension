@@ -7,6 +7,25 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-01
+
+### Changed
+
+- **音声文字起こしのプロンプトを「補正なし」方針に変更**
+  - フィラー (「えーと」「あの」など) を削除しない
+  - 言い直し・言いよどみ・繰り返しもそのまま残す
+  - 内容の要約・補完・整形・別単語への言い換えを禁止
+  - 出力は「聞こえた音をそのまま忠実に書き起こす」のみ
+  - リライトしたい場合は ✨ AI 側で明示的に指示する流れに統一
+
+### Added
+
+- **文字起こし用モデルをリライト用と別に設定可能に**
+  - popup の「API 設定」タブに「モデル (音声文字起こし)」フィールドを追加
+  - 未指定なら従来通り (リライト用が lite なら自動で flash に昇格)
+  - 明示指定すればその値を使用 (例: 文字起こしは pro、リライトは lite)
+  - LEGACY_MODEL_MAP も transcribeModel に適用
+
 ## [0.5.3] - 2026-06-01
 
 ### Fixed
@@ -149,7 +168,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.3...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.0...v0.5.1
