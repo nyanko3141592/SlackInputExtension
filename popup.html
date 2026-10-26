@@ -140,7 +140,8 @@
         <button id="resetPrompts" class="btn btn-link" title="デフォルトに戻す">↺ デフォルトに戻す</button>
       </div>
       <p class="hint" style="margin-top: 0">
-        クリックで編集。並び替えは↑↓。Slack mrkdwn 形式の出力ルールは自動付与されます。
+        クリックで編集。並び替えは↑↓。📌 が付いたものは Slack の入力欄の横にボタンとして並びます。Slack mrkdwn
+        形式の出力ルールは自動付与されます。
       </p>
 
       <ul id="promptList" class="prompt-list"></ul>
@@ -151,6 +152,10 @@
           <input type="text" id="promptName" placeholder="プロンプト名" class="name-input" />
         </div>
         <textarea id="promptBody" rows="10" placeholder="リライトの方針を記述..."></textarea>
+        <label class="pin-row">
+          <input type="checkbox" id="promptPinned" />
+          Slack の入力欄の横にボタンとして表示する
+        </label>
         <div class="editor-actions">
           <button id="deletePrompt" class="btn btn-danger">削除</button>
           <div>

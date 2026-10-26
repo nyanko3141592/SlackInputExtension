@@ -7,6 +7,30 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-26
+
+### Added
+
+- **英語併記プロンプト** (🌏): 原文はそのまま残し、直後に英訳を付ける (英語の原文なら日本語訳)
+- **自作ボタン**: プロンプトに「入力欄の横にボタンとして表示」を追加。📌 付きのプロンプトは
+  ストリップにワンクリックのボタンとして並ぶ
+  - popup のプロンプト編集でチェックを切り替え
+  - ✨ AI ▾ の一覧から「📌 入力中の指示をボタンにする」で、その場の指示をボタン化できる
+  - 既定では「丁寧にリライト」「英語併記」をボタン表示
+
+### Changed
+
+- 既定プロンプトから「カジュアル化」「箇条書きに変換」を削除 (ビジネス用途で使わないため)
+  - 既存ユーザーも更新時に一度だけ移行。名前を変えていなければ削除し、英語併記を追加する
+
+### Fixed
+
+- **メンションを含むメッセージのリライトで、メンションがただの「@名前」文字列になる問題**
+  - メンション要素を ⟦M1⟧ のトークンに置き換えて AI に渡し、結果を書き戻す時に元の要素で復元
+  - 復元できなかった場合はトーストで警告
+- **改行しただけの行の間に空行が入る問題**: 入力欄の取得に innerText を使っていたため、
+  1行ごとの <p> の間が空行として AI に渡っていた
+
 ## [0.6.2] - 2026-06-01
 
 ### Changed
@@ -207,7 +231,8 @@
 - メンション・URL・絵文字ショートコード保持
 - キーボードショートカット (`Alt+Shift+A` / `R` / `1` 〜 `9`)
 
-[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/nyanko3141592/SlackInputExtension/compare/v0.5.3...v0.6.0
