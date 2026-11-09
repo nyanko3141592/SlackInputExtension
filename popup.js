@@ -22,6 +22,7 @@ const els = {
   promptIcon: document.getElementById('promptIcon'),
   promptName: document.getElementById('promptName'),
   promptBody: document.getElementById('promptBody'),
+  promptPinned: document.getElementById('promptPinned'),
   savePrompt: document.getElementById('savePrompt'),
   cancelEdit: document.getElementById('cancelEdit'),
   deletePrompt: document.getElementById('deletePrompt'),
@@ -204,6 +205,7 @@ function renderPrompts() {
     li.innerHTML = `
       <span class="p-icon">${escapeHtml(p.icon || '✨')}</span>
       <span class="p-name">${escapeHtml(p.name)}</span>
+      ${p.pinned ? '<span class="p-pin" title="入力欄の横にボタン表示">📌</span>' : ''}
       <div class="p-actions">
         <button class="move-up" title="上へ" ${idx === 0 ? 'disabled' : ''}>↑</button>
         <button class="move-down" title="下へ" ${idx === prompts.length - 1 ? 'disabled' : ''}>↓</button>
@@ -242,6 +244,7 @@ function openEditor(id) {
   els.promptIcon.value = p.icon || '';
   els.promptName.value = p.name || '';
   els.promptBody.value = p.prompt || '';
+  els.promptPinned.checked = !!p.pinned;
   els.promptEditor.classList.remove('hidden');
   renderPrompts();
   els.promptName.focus();
@@ -264,6 +267,7 @@ els.savePrompt.addEventListener('click', () => {
   p.icon = els.promptIcon.value.trim() || '✨';
   p.name = name;
   p.prompt = body;
+  p.pinned = els.promptPinned.checked;
   persistPrompts();
   closeEditor();
 });
@@ -286,6 +290,7 @@ els.addPrompt.addEventListener('click', () => {
     name: '新しいプロンプト',
     icon: '✨',
     prompt: '次の Slack メッセージを、以下の方針でリライトしてください。\n\n【方針】\n- ',
+    pinned: true,
   });
   persistPrompts();
   openEditor(id);

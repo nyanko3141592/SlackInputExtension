@@ -114,6 +114,7 @@
       });
       globalPopup.appendChild(item);
     });
+    globalPopup.appendChild(makeSaveAsButtonItem());
     if (prompts.length === 0) {
       const empty = document.createElement('div');
       empty.style.cssText = 'padding:10px;color:#9a9b9d;font-size:12px;text-align:center';
@@ -121,6 +122,52 @@
       globalPopup.appendChild(empty);
     }
   }
+  // 指示欄に書いた内容を、ストリップに常時出るボタンとして保存する
+  function makeSaveAsButtonItem() {
+    const { input } = currentPopupContext;
+    const instr = (input?.value || '').trim();
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border-top:1px solid #353a3f;margin-top:4px;padding-top:4px';
+    if (!instr) {
+      wrap.innerHTML = `<div style="padding:6px 8px;color:#9a9b9d;font-size:11.5px;line-height:1.5">
+        指示欄に書いてからここを開くと、その指示をボタンとして保存できます</div>`;
+      return wrap;
+    }
+    const item = document.createElement('button');
+    item.style.cssText = `
+      display:flex;align-items:center;gap:8px;width:100%;
+      padding:7px 8px;border:none;background:transparent;
+      border-radius:5px;cursor:pointer;font-size:12.5px;color:#ECB22E;
+      text-align:left;font-family:inherit
+    `;
+    item.textContent = `📌 「${instr.slice(0, 16)}${instr.length > 16 ? '…' : ''}」をボタンにする`;
+    item.addEventListener('mouseenter', () => (item.style.background = '#2c2f33'));
+    item.addEventListener('mouseleave', () => (item.style.background = 'transparent'));
+    item.addEventListener('mousedown', (e) => e.preventDefault());
+    item.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const editor = currentPopupContext?.editor;
+      hideGlobalPopup();
+      const name = instr.replace(/\s+/g, ' ').slice(0, 12);
+      const res = await chrome.runtime.sendMessage({
+        action: 'savePrompt',
+        name,
+        icon: '⭐',
+        prompt: instr,
+        pinned: true,
+      });
+      if (!editor) return;
+      if (res?.error) flashToast(editor, '✗ ' + res.error, 'error', 3000);
+      else {
+        input.value = '';
+        flashToast(editor, `📌 「${name}」をボタンにしました (名前は設定画面で変更可)`, 'success', 3000);
+      }
+    });
+    wrap.appendChild(item);
+    return wrap;
+  }
+
   // 外部クリックで閉じる
   document.addEventListener(
     'mousedown',
@@ -171,6 +218,50 @@
     } catch {
       prompts = [];
     }
+    document.querySelectorAll('.sair-strip-inline').forEach((strip) => {
+      if (strip._sairEditor) renderQuickButtons(strip, strip._sairEditor);
+    });
+  }
+
+  // ======== ボタン表示 (pinned) のプロンプトをストリップに並べる ========
+  function renderQuickButtons(strip, editor) {
+    const wrap = strip.querySelector('.sair-quick');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    prompts
+      .filter((p) => p.pinned)
+      .forEach((p) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.title = p.name;
+        b.style.cssText = `
+          display:inline-flex;align-items:center;gap:3px;background:transparent;
+          border:1px solid rgba(127,127,127,0.35);color:currentColor;cursor:pointer;
+          padding:0 7px;height:26px;border-radius:5px;font-size:11.5px;font-family:inherit;
+          white-space:nowrap;flex-shrink:0;opacity:0.85;max-width:9em;overflow:hidden
+        `;
+        const icon = document.createElement('span');
+        icon.textContent = p.icon || '✨';
+        const name = document.createElement('span');
+        name.textContent = p.name;
+        name.style.cssText = 'overflow:hidden;text-overflow:ellipsis';
+        b.append(icon, name);
+        b.addEventListener('mouseenter', () => {
+          b.style.background = 'rgba(127,127,127,0.2)';
+          b.style.opacity = '1';
+        });
+        b.addEventListener('mouseleave', () => {
+          b.style.background = 'transparent';
+          b.style.opacity = '0.85';
+        });
+        b.addEventListener('mousedown', (e) => e.preventDefault());
+        b.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          runRewrite(editor, { promptId: p.id });
+        });
+        wrap.appendChild(b);
+      });
   }
 
   // ======== Slack DOM のスキャン ========
@@ -240,6 +331,7 @@
         <span>AI</span>
         <span style="font-size:9px;opacity:0.7">▾</span>
       </button>
+      <div class="sair-quick" style="display:inline-flex;align-items:flex-end;gap:4px;flex:0 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none"></div>
       <button class="sair-mic" title="音声で Slack 入力欄に挿入 (クリック開始 / もう一度で停止)"
         style="display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;color:currentColor;cursor:pointer;padding:0;width:28px;height:28px;border-radius:5px;font-size:14px;font-family:inherit;flex-shrink:0;opacity:0.85;align-self:flex-end">🎤</button>
       <textarea class="sair-input"
@@ -595,6 +687,9 @@
       }
     });
 
+    strip._sairEditor = editor;
+    renderQuickButtons(strip, editor);
+
     // セッション初期化（必要時）
     updateHistoryButtonsForStrip(strip, editor);
 
@@ -632,7 +727,7 @@
   function getSession(editor) {
     let s = sessions.get(editor);
     if (!s) {
-      s = { original: getEditorText(editor), stack: [] };
+      s = { original: snapshotEditor(editor), stack: [] };
       sessions.set(editor, s);
     }
     return s;
@@ -642,7 +737,7 @@
     const s = sessions.get(editor);
     if (!s || s.stack.length === 0) return;
     const prev = s.stack.pop();
-    replaceEditorText(editor, prev);
+    applySnapshot(editor, prev.text, prev.embeds);
     if (s.stack.length === 0) sessions.delete(editor);
     updateAllStripHistory(editor);
     flashToast(editor, '↩ 直前に戻しました');
@@ -651,7 +746,7 @@
   function doReset(editor) {
     const s = sessions.get(editor);
     if (!s) return;
-    replaceEditorText(editor, s.original);
+    applySnapshot(editor, s.original.text, s.original.embeds);
     sessions.delete(editor);
     updateAllStripHistory(editor);
     flashToast(editor, '⟲ 原型に戻しました');
@@ -660,30 +755,114 @@
   // ======== テキスト取得・置換 ========
   function getEditorText(el) {
     if (!el) return '';
-    return el.innerText.replace(/ /g, ' ').replace(/\s+$/g, '');
+    return el.innerText.replace(/\u00a0/g, ' ').replace(/\s+$/g, '');
   }
 
-  function replaceEditorText(el, text) {
+  // ======== メンション等の埋め込み要素の保持 ========
+  // Slack のメンションは <ts-mention> などの埋め込み要素で、innerText では「@名前」の
+  // ただの文字列になる。そのまま AI に渡して書き戻すと通知されない偽メンションになるため、
+  // ⟦M1⟧ のトークンに置き換えて送り、戻ってきたら元の要素 (outerHTML) で復元する。
+  const BLOCK_TAGS = new Set(['P', 'DIV', 'PRE', 'BLOCKQUOTE', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+
+  function isEmbedElement(node) {
+    if (node.nodeType !== 1) return false;
+    if (node.tagName === 'IMG') return false; // 絵文字は :code: のテキストで扱う
+    return node.tagName.includes('-') || node.getAttribute('contenteditable') === 'false';
+  }
+
+  function countEmbeds(el) {
+    return Array.from(el.querySelectorAll('*')).filter(isEmbedElement).length;
+  }
+
+  // 返り値: { text, embeds: [{ token, html, label }] }  (text 内に token を含む)
+  function snapshotEditor(el) {
+    if (!el) return { text: '', embeds: [] };
+    // innerText は使わない: Quill は1行=1つの <p> で、<p> 間は innerText だと "\n\n" になり
+    // 改行しただけの行の間に空行が入った状態で AI に渡ってしまう
+    const embeds = [];
+    const out = [];
+    const endsWithNewline = () => out.length > 0 && out[out.length - 1].endsWith('\n');
+    const walk = (node) => {
+      node.childNodes.forEach((child) => {
+        if (child.nodeType === 3) {
+          out.push(child.nodeValue.replace(/\u00a0/g, ' ').replace(/\uFEFF/g, ''));
+        } else if (child.nodeType !== 1) {
+          // コメント等は無視
+        } else if (isEmbedElement(child)) {
+          const token = `⟦M${embeds.length + 1}⟧`;
+          embeds.push({ token, html: child.outerHTML, label: child.textContent || '' });
+          out.push(token);
+        } else if (child.tagName === 'BR') {
+          // Quill の空行は <p><br></p>。末尾の <br> は改行として数えない
+          if (child.nextSibling) out.push('\n');
+        } else if (child.tagName === 'IMG') {
+          out.push(child.getAttribute('data-stringify-text') || child.getAttribute('alt') || '');
+        } else if (BLOCK_TAGS.has(child.tagName)) {
+          if (out.length > 0 && !endsWithNewline()) out.push('\n');
+          walk(child);
+          out.push('\n');
+        } else {
+          walk(child);
+        }
+      });
+    };
+    walk(el);
+    return { text: out.join('').replace(/\s+$/g, ''), embeds };
+  }
+
+  // snapshot (またはトークン入りの AI 出力) を入力欄に書き戻す
+  // 戻り値 (Promise): 復元できなかった埋め込みの数
+  async function applySnapshot(el, text, embeds) {
+    if (!embeds || embeds.length === 0) {
+      replaceEditorText(el, text);
+      return 0;
+    }
+    const html = text
+      .split('\n')
+      .map((line) => {
+        if (line === '') return '<p><br></p>';
+        let h = escapeHtml(line);
+        for (const e of embeds) h = h.split(e.token).join(e.html);
+        return `<p>${h}</p>`;
+      })
+      .join('');
+    let plain = text;
+    let expected = 0;
+    for (const e of embeds) {
+      const n = plain.split(e.token).length - 1;
+      expected += n;
+      plain = plain.split(e.token).join(e.label);
+    }
+    replaceEditorText(el, plain, html);
+    // Slack のペースト処理は非同期のことがあるので少し待ってから数える
+    await new Promise((r) => setTimeout(r, 150));
+    const missingFromAi = embeds.filter((e) => !text.includes(e.token)).length;
+    const notRestored = Math.max(expected - countEmbeds(el), 0);
+    return missingFromAi + notRestored;
+  }
+
+  function replaceEditorText(el, text, html) {
     if (!el) return;
     isReplacing = true;
     try {
       el.focus();
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      sel.addRange(range);
-      const ok = document.execCommand('insertText', false, text);
-      if (!ok) {
-        el.dispatchEvent(
-          new InputEvent('beforeinput', {
-            inputType: 'insertText',
-            data: text,
-            bubbles: true,
-            cancelable: true,
-          })
-        );
-      }
+      // 全選択してから ClipboardEvent paste をシミュレート。
+      // execCommand('insertText') はメンション等の embed ノードを含む選択に対して
+      // Quill が削除だけ実行して挿入を取りこぼす問題がある。
+      // Quill はペーストを専用クリップボードモジュールで処理するため、
+      // この方法だと embed 含む選択でも正しく置換される。
+      document.execCommand('selectAll');
+      const dt = new DataTransfer();
+      dt.setData('text/plain', text);
+      // html があれば Slack 側でメンション要素として解釈される
+      if (html) dt.setData('text/html', html);
+      el.dispatchEvent(
+        new ClipboardEvent('paste', {
+          clipboardData: dt,
+          bubbles: true,
+          cancelable: true,
+        })
+      );
       el.dispatchEvent(new Event('input', { bubbles: true }));
     } finally {
       setTimeout(() => {
@@ -730,7 +909,8 @@
   // ======== リライト実行 ========
   async function runRewrite(editor, { promptId, customInstruction }) {
     if (busy || !editor) return;
-    const original = getEditorText(editor);
+    const snap = snapshotEditor(editor);
+    const original = snap.text;
     if (!original) {
       flashToast(editor, '入力欄が空です', 'error');
       return;
@@ -738,7 +918,7 @@
     busy = true;
     lastPromptInfo = { promptId, customInstruction };
     const session = getSession(editor);
-    session.stack.push(original);
+    session.stack.push(snap);
     const label = formatLabel(promptId, customInstruction);
     flashToast(editor, `${label}...`, 'info', 60000);
     try {
@@ -749,9 +929,18 @@
         customInstruction,
       });
       if (res?.error) throw new Error(res.error);
-      replaceEditorText(editor, res.result);
+      const lost = await applySnapshot(editor, res.result, snap.embeds);
       updateAllStripHistory(editor);
-      flashToast(editor, `✓ ${label}`, 'success');
+      if (lost > 0) {
+        flashToast(
+          editor,
+          `⚠ メンション等 ${lost} 件を復元できませんでした。付け直してください`,
+          'error',
+          5000
+        );
+      } else {
+        flashToast(editor, `✓ ${label}`, 'success');
+      }
       // 続けて指示を出せるようストリップ入力欄にフォーカスを戻す
       setTimeout(() => {
         const composer = editor.closest('.c-wysiwyg_container');
@@ -766,7 +955,7 @@
       }, 120);
     } catch (err) {
       session.stack.pop();
-      if (session.stack.length === 0 && session.original === original) sessions.delete(editor);
+      if (session.stack.length === 0 && session.original.text === original) sessions.delete(editor);
       flashToast(editor, '✗ ' + (err.message || 'リライト失敗'), 'error', 4000);
     } finally {
       busy = false;

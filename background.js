@@ -17,11 +17,27 @@ Slack はクライアント独自の mrkdwn 形式を使う。標準 Markdown �
 - 改行は通常の改行（\\n）でよい。段落間は空行1つで区切る
 - HTML タグや **bold** など標準 Markdown 記法は絶対に出力しない`;
 
+// 英語併記: 原文はそのまま残し、下に英訳を付ける (英語の原文なら日本語訳を付ける)
+const BILINGUAL_PROMPT = `次の Slack メッセージに、英語の訳文を併記してください。
+
+【出力形式】
+- 1行目から: 元の日本語メッセージをそのまま (一字一句変えない。誤字の修正や言い換えもしない)
+- その直後の行から: 同じ内容の英語訳
+- 元テキストが英語の場合は逆に、英語原文をそのまま残し、その後に日本語訳を付ける
+- 「日本語:」「English:」などのラベルや区切り線は付けない
+
+【英訳のルール】
+- ビジネスチャットに適した、カジュアル過ぎず堅すぎない自然な英語にする
+- 直訳ではなく、ネイティブが書く自然な表現にする
+- 箇条書き・太字などの構造は原文と揃える
+- URL、メンション、絵文字ショートコード (:smile: 等)、数字、固有名詞はそのまま保持`;
+
 const DEFAULT_PROMPTS = [
   {
     id: 'polite',
     name: '丁寧にリライト',
     icon: '🙇',
+    pinned: true,
     prompt: `次の Slack メッセージを、ビジネスチャットに適した丁寧で柔らかい敬語にリライトしてください。
 
 【ルール】
@@ -30,6 +46,13 @@ const DEFAULT_PROMPTS = [
 - 冗長な敬語の重ね掛けは避ける（「させていただく」連発しない）
 - 絵文字が元にあれば必要に応じて残す。新規追加は最小限
 - メンション (<@USER>) や URL はそのまま保持`,
+  },
+  {
+    id: 'bilingual',
+    name: '英語併記',
+    icon: '🌏',
+    pinned: true,
+    prompt: BILINGUAL_PROMPT,
   },
   {
     id: 'organize',
@@ -69,30 +92,6 @@ const DEFAULT_PROMPTS = [
 - 過度にぶっきらぼうにならない程度の丁寧さは保つ`,
   },
   {
-    id: 'casual',
-    name: 'カジュアル化',
-    icon: '😊',
-    prompt: `次の Slack メッセージを、社内のフラットなチャットに適した自然でカジュアルなトーンにリライトしてください。
-
-【ルール】
-- ですます調を基本としつつ、堅すぎる敬語は崩す
-- 「お疲れ様です」「恐れ入りますが」などの過剰な定型句は省く
-- フランクすぎる若者言葉やタメ口にはしない
-- 元の意図・情報を変えない`,
-  },
-  {
-    id: 'bullets',
-    name: '箇条書きに変換',
-    icon: '•',
-    prompt: `次の Slack メッセージを、要点を抽出した箇条書きにリライトしてください。
-
-【ルール】
-- 行頭は「• 」（中黒+半角スペース）
-- 1項目は1行で簡潔に
-- 必要なら冒頭に1行サマリー（太字 *summary*）を付ける
-- 元の意図・情報を変えない`,
-  },
-  {
     id: 'translate-en',
     name: '英語に変換',
     icon: '🌐',
@@ -117,7 +116,8 @@ const SYSTEM_INSTRUCTION_TEMPLATE = `あなたは Slack のメッセージリラ
 【厳守】
 - 出力はリライト後の Slack メッセージのみ。前置き・後書き・説明・「リライト後:」などのラベルは一切付けない
 - 元テキストに含まれる URL、メンション、絵文字ショートコード (:smile: 等)、コードブロックの中身は改変しない
-- 元テキストに無い情報を勝手に追加しない`;
+- 元テキストに無い情報を勝手に追加しない
+- ⟦M1⟧ ⟦M2⟧ … の形の記号はメンション等の埋め込み要素。削除・翻訳・書き換えをせず、文中の自然な位置にそのまま残す`;
 
 function dictionaryHint(dictionary) {
   if (!dictionary || dictionary.length === 0) return '';
@@ -296,7 +296,7 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
       gatewayUrl,
       memberToken,
     });
-    return { result: applyDictionary(rawResult, settings.dictionary) };
+    return { result: applyDictionary(rawResult, settings.dictionary).replace(/\n{2,}/g, '\n') };
   }
 
   promptDef = settings.prompts.find((p) => p.id === promptId);
@@ -310,7 +310,7 @@ async function handleRewrite({ originalText, promptId, customInstruction }) {
     gatewayUrl,
     memberToken,
   });
-  return { result: applyDictionary(rawResult, settings.dictionary) };
+  return { result: applyDictionary(rawResult, settings.dictionary).replace(/\n{2,}/g, '\n') };
 }
 
 // 音声 → 書き起こし用デフォルトプロンプト
@@ -385,7 +385,7 @@ async function handleTranscribeForInput({ audioBase64, mimeType }) {
   return { text };
 }
 
-async function handleSavePrompt({ name, icon, prompt }) {
+async function handleSavePrompt({ name, icon, prompt, pinned }) {
   if (!name || !name.trim()) throw new Error('プロンプト名が空です');
   if (!prompt || !prompt.trim()) throw new Error('プロンプト本文が空です');
   const data = await chrome.storage.sync.get(['prompts']);
@@ -399,10 +399,44 @@ async function handleSavePrompt({ name, icon, prompt }) {
     name: name.trim(),
     icon: (icon || '✨').trim() || '✨',
     prompt: prompt.trim(),
+    pinned: !!pinned,
   });
   await chrome.storage.sync.set({ prompts: list });
   return { ok: true, id };
 }
+
+// ===== 既存ユーザーのプロンプト移行 (v0.7) =====
+// 保存済みプロンプトがあるとデフォルトの変更が届かないため、更新時に一度だけ
+// - 「英語併記」を追加し、丁寧/英語併記をボタン表示にする
+// - 名前を変えていない「カジュアル化」「箇条書きに変換」を削除する
+async function migratePromptsV07() {
+  const data = await chrome.storage.sync.get(['prompts', 'promptsMigratedV07']);
+  if (data.promptsMigratedV07) return;
+  if (Array.isArray(data.prompts) && data.prompts.length > 0) {
+    let list = data.prompts.filter(
+      (p) =>
+        !(p.id === 'casual' && p.name === 'カジュアル化') &&
+        !(p.id === 'bullets' && p.name === '箇条書きに変換')
+    );
+    const hasPinned = list.some((p) => 'pinned' in p);
+    if (!hasPinned) {
+      const polite = list.find((p) => p.id === 'polite');
+      if (polite) polite.pinned = true;
+    }
+    if (!list.some((p) => p.id === 'bilingual')) {
+      const bilingual = DEFAULT_PROMPTS.find((p) => p.id === 'bilingual');
+      const at = list.findIndex((p) => p.id === 'polite');
+      list.splice(at >= 0 ? at + 1 : list.length, 0, { ...bilingual });
+    }
+    if (list.length === 0) list = JSON.parse(JSON.stringify(DEFAULT_PROMPTS));
+    await chrome.storage.sync.set({ prompts: list });
+  }
+  await chrome.storage.sync.set({ promptsMigratedV07: true });
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  migratePromptsV07().catch(() => {});
+});
 
 // ===== chrome.commands: キーボードショートカット =====
 chrome.commands.onCommand.addListener(async (command) => {
